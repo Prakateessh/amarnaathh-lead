@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import * as XLSX from 'xlsx'; // 📦 IMPORT THE EXCEL LIBRARY
 
 export default function TradeIndia() {
   const navigate = useNavigate();
@@ -83,6 +84,34 @@ export default function TradeIndia() {
     } catch (error) {
       setStatus({ type: 'error', message: `❌ Failed to save to CRM: ${error.message}` });
     }
+  };
+
+  // 📊 EXCEL EXPORT FUNCTION
+  const handleDownloadExcel = () => {
+    if (leads.length === 0) return;
+
+    const excelData = leads.map(lead => ({
+      'Date': lead.date || '',
+      'Requirement': lead.requirement || '',
+      'Name': lead.name || '',
+      'Company': lead.company || '',
+      'Phone': lead.phone || '',
+      'Location': lead.location || '',
+      'Status': lead.status || 'Pending'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Auto-size columns
+    const columnWidths = [
+      { wch: 12 }, { wch: 40 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 25 }, { wch: 15 }
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "TradeIndia Leads");
+    
+    XLSX.writeFile(workbook, `TradeIndia_Leads_${dates.start}_to_${dates.end}.xlsx`);
   };
 
   const qualifiedCount = leads.filter(l => l.status === "✅ Qualified").length;
@@ -188,15 +217,26 @@ export default function TradeIndia() {
               <span className="font-mono text-sm text-secondary">
                 {qualifiedCount > 0 ? <strong className="text-green-400">{qualifiedCount} leads ready for ingestion.</strong> : "Awaiting qualification."}
               </span>
-              <button 
-                onClick={handleSendToCRM}
-                disabled={qualifiedCount === 0} 
-                className={`px-6 py-2 font-mono text-sm tracking-widest uppercase rounded transition-colors ${
-                  qualifiedCount > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-surface-bright text-secondary cursor-not-allowed'
-                }`}
-              >
-                📥 Send to Master CRM
-              </button>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleDownloadExcel}
+                  className="px-6 py-2 border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase rounded transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  Export Excel
+                </button>
+
+                <button 
+                  onClick={handleSendToCRM}
+                  disabled={qualifiedCount === 0} 
+                  className={`px-6 py-2 font-mono text-sm tracking-widest uppercase rounded transition-colors ${
+                    qualifiedCount > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-surface-bright text-secondary cursor-not-allowed'
+                  }`}
+                >
+                  📥 Send to Master CRM
+                </button>
+              </div>
             </div>
           </div>
         )}
