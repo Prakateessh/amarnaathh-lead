@@ -15,7 +15,10 @@ export default function IndiaMart() {
     end: today.toISOString().split('T')[0]
   });
 
+  // 🍪 State variables
   const [cookieString, setCookieString] = useState(localStorage.getItem('im_cookie') || "");
+  const [showCookieInput, setShowCookieInput] = useState(false); // NEW: Controls visibility of the input box
+  
   const [leads, setLeads] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -26,8 +29,10 @@ export default function IndiaMart() {
   };
 
   const handleFetch = async () => {
+    // If there is no cookie at all, show the box immediately
     if (!cookieString.trim()) {
       setStatus({ type: 'error', message: '⚠️ Authentication Error: Please paste your IndiaMart Cookie.' });
+      setShowCookieInput(true); 
       return;
     }
 
@@ -40,7 +45,6 @@ export default function IndiaMart() {
     setStatus({ type: '', message: '' });
 
     try {
-      // FORCE A SOLID POST TRANSMISSION
       const response = await fetch(`https://python-backend-tdjw.onrender.com/api/scrape/indiamart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,15 +59,20 @@ export default function IndiaMart() {
       const result = await response.json();
       
       if (result.total === 0) {
+        // If 0 leads are found, the cookie likely expired. Show the box so they can update it.
         setStatus({ type: 'error', message: '❌ Zero leads found. Your cookie may have expired.' });
+        setShowCookieInput(true);
       } else {
+        // Success! Hide the cookie box to keep the UI clean.
         setLeads(result.data);
         setStatus({ type: 'success', message: `✅ Successfully extracted ${result.total} leads from IndiaMart.` });
+        setShowCookieInput(false); 
       }
       
     } catch (error) {
       console.error("Fetch Error:", error);
-      setStatus({ type: 'error', message: '❌ Connection failed. Verify backend logs or network status.' });
+      setStatus({ type: 'error', message: '❌ Connection failed or Cookie invalid.' });
+      setShowCookieInput(true); // Pop open the box just in case it was an auth error
     } finally {
       setIsFetching(false);
     }
@@ -140,7 +149,6 @@ export default function IndiaMart() {
           Back to Routing
         </button>
         <span className="font-mono text-xs text-blue-400 tracking-widest uppercase flex items-center gap-2">
-          {/* FIXED TYPO FREE GLOBAL SVG ICON */}
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
           IndiaMart Integration
         </span>
@@ -149,22 +157,27 @@ export default function IndiaMart() {
       <div className="glass-modal w-full max-w-6xl p-8 relative z-10 flex flex-col gap-8 shadow-2xl">
         <div className="border-b border-white/10 pb-6 flex flex-col gap-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            
             <div className="w-full md:w-1/2">
               <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Data Extraction</h1>
               <p className="text-onSurfaceVariant text-sm mt-2 mb-4">Pull inbound requests directly from the IndiaMart vendor API.</p>
               
-              <div className="flex flex-col gap-2">
-                <label className="font-mono text-xs text-secondary tracking-widest uppercase">
-                  Session Cookie String <span className="text-red-400">*</span>
-                </label>
-                <input 
-                  type="password" 
-                  value={cookieString} 
-                  onChange={handleCookieChange}
-                  placeholder="Paste raw 'cookie' string from network tab here..." 
-                  className="bg-black/30 border border-white/20 px-3 py-2 rounded text-white font-mono text-xs focus:border-primary focus:outline-none w-full" 
-                />
-              </div>
+              {/* 👁️ CONDITIONAL RENDER: Only shows if showCookieInput is true */}
+              {showCookieInput && (
+                <div className="flex flex-col gap-2 animate-fade-in">
+                  <label className="font-mono text-xs text-secondary tracking-widest uppercase">
+                    Session Cookie String <span className="text-red-400">*</span>
+                  </label>
+                  <input 
+                    type="password" 
+                    value={cookieString} 
+                    onChange={handleCookieChange}
+                    placeholder="Paste fresh raw 'cookie' string here..." 
+                    className="bg-black/30 border border-red-500/50 px-3 py-2 rounded text-white font-mono text-xs focus:border-primary focus:outline-none w-full" 
+                  />
+                  <span className="text-xs text-red-300">Previous cookie expired. Please provide a new one to continue.</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-end gap-4 w-full md:w-auto">
