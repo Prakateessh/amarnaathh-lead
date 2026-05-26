@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import * as XLSX from 'xlsx'; // 📦 IMPORT THE EXCEL LIBRARY
 
 export default function Database() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function Database() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isWiping, setIsWiping] = useState(false);
 
-  // === NEW: NOTES MODAL STATE ===
+  // === NOTES MODAL STATE ===
   const [activeLead, setActiveLead] = useState(null);
   const [newNote, setNewNote] = useState("");
   const [isAppending, setIsAppending] = useState(false);
@@ -86,7 +87,7 @@ export default function Database() {
     }
   };
 
-  // === NEW: TIMESTAMPED NOTE APPENDER ===
+  // === TIMESTAMPED NOTE APPENDER ===
   const handleAppendNote = async () => {
     if (!newNote.trim() || !activeLead) return;
 
@@ -124,6 +125,49 @@ export default function Database() {
     }
   };
 
+  // === NEW: EXPORT TO EXCEL FUNCTION ===
+  const handleDownloadExcel = () => {
+    if (leads.length === 0) return;
+
+    // Map the internal data to clean, analyst-friendly column headers
+    const excelData = leads.map(lead => ({
+      'Date Imported': lead.date || '',
+      'Source': lead.source || '',
+      'Client Name': lead.name || '',
+      'Company': lead.company_name || '',
+      'Phone': lead.phone || '',
+      'Location': lead.location || '',
+      'Requirement': lead.requirement || '',
+      'Temperature': lead.lead_temp || 'Cold',
+      'Pipeline Value (₹)': Number(lead.price) || 0,
+      'Internal Notes': lead.notes || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Auto-size columns for readability in Excel
+    const columnWidths = [
+      { wch: 15 }, // Date
+      { wch: 15 }, // Source
+      { wch: 25 }, // Name
+      { wch: 30 }, // Company
+      { wch: 15 }, // Phone
+      { wch: 20 }, // Location
+      { wch: 45 }, // Requirement
+      { wch: 15 }, // Temperature
+      { wch: 20 }, // Value
+      { wch: 60 }  // Notes
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Master CRM Pipeline");
+    
+    // Generate filename with today's date
+    const today = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Master_CRM_Export_${today}.xlsx`);
+  };
+
   // --- KPI CALCULATIONS ---
   const hotCount = leads.filter(l => l.lead_temp === 'Hot').length;
   const warmCount = leads.filter(l => l.lead_temp === 'Warm').length;
@@ -149,7 +193,7 @@ export default function Database() {
     <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
 
-      {/* --- NEW: NOTES MODAL OVERLAY --- */}
+      {/* --- NOTES MODAL OVERLAY --- */}
       {activeLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-navy border border-white/20 p-6 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col gap-4">
@@ -218,6 +262,15 @@ export default function Database() {
             <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Central CRM Analytics</h1>
           </div>
           <div className="flex gap-4">
+            {/* 💾 NEW: EXPORT TO EXCEL BUTTON */}
+            <button 
+              onClick={handleDownloadExcel}
+              className="border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase px-4 py-2 rounded transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              Export Data
+            </button>
+
             {hasUnsavedChanges && (
               <button onClick={handleSaveChanges} disabled={isSaving} className="bg-green-600 hover:bg-green-500 text-white font-mono text-sm tracking-widest uppercase px-6 py-2 rounded animate-pulse">
                 {isSaving ? 'Saving...' : '💾 Save Changes'}
@@ -306,7 +359,6 @@ export default function Database() {
                       <div className="text-onSurfaceVariant text-xs mt-1">{lead.company_name || '—'} | {lead.phone}</div>
                     </td>
                     
-                    {/* --- NEW: NOTES TRIGGER IN REQUIREMENT COLUMN --- */}
                     <td className="py-4 px-4 max-w-xs">
                       <div className="text-white font-medium truncate mb-2">{lead.requirement}</div>
                       <button 
