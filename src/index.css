@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: theme('colors.navy.DEFAULT');
+    color: theme('colors.onSurface');
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .glass-modal {
+    @apply bg-white/20 backdrop-blur-[40px] border border-white/30 rounded-lg;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-primary text-white rounded px-4 py-2 font-semibold transition-all duration-300;
+  }
+  
+  .btn-primary:hover {
+    @apply shadow-glow-primary scale-[1.02];
+  }
+}
