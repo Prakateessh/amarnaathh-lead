@@ -13,14 +13,14 @@ export default function Database() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isWiping, setIsWiping] = useState(false);
+  
+  // Custom Hot Pipeline Reveal State
   const [showHotPipeline, setShowHotPipeline] = useState(false);
 
   // === MODAL STATES ===
   const [activeLead, setActiveLead] = useState(null);
   const [newNote, setNewNote] = useState("");
   const [isAppending, setIsAppending] = useState(false);
-  
-  // NEW: Lost Reason Modal State
   const [lostModal, setLostModal] = useState({ isOpen: false, leadId: null });
 
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
@@ -59,16 +59,13 @@ export default function Database() {
   // === DATA EDITING HANDLERS ===
   const handleCellEdit = (id, field, value) => {
     if (field === 'status' && value === 'Closed - Lost') {
-      // Trigger the modal if they select Lost
       setLostModal({ isOpen: true, leadId: id });
       return;
     }
 
-    // Normal edit for anything else (including changing out of Lost status)
     setLeads(prevLeads => prevLeads.map(lead => {
       if (lead.id === id) {
         let updatedLead = { ...lead, [field]: value };
-        // If changing status to something else, clear the lost reason
         if (field === 'status') updatedLead.lost_reason = null;
         return updatedLead;
       }
@@ -171,32 +168,24 @@ export default function Database() {
   const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
   const activeLeads = leads.filter(l => l.status !== 'Closed - Lost');
 
-  const hotPipelineValue = activeLeads
-  .filter(l => l.lead_temp === 'Hot')
-  .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
+  const hotPipelineValue = activeLeads.filter(l => l.lead_temp === 'Hot').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   const hotPipelineCount = activeLeads.filter(l => l.lead_temp === 'Hot').length;
   
-  // 2. Old Graphs (Temperature & Value)
+  // 2. Temperature Pie Data
   const pieData = [
     { name: 'Hot', value: activeLeads.filter(l => l.lead_temp === 'Hot').length, color: '#ef4444' },
     { name: 'Warm', value: activeLeads.filter(l => l.lead_temp === 'Warm').length, color: '#f59e0b' },
     { name: 'Cold', value: activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length, color: '#06b6d4' }
   ].filter(d => d.value > 0);
 
-  const barData = pieData.map(d => ({
-    name: d.name, 
-    fill: d.color,
-    value: activeLeads.filter(l => (l.lead_temp || 'Cold') === d.name).reduce((sum, l) => sum + (Number(l.price) || 0), 0)
-  })).filter(d => d.value > 0);
-
-  // 3. NEW: The Sales Funnel (Vertical Bar Chart)
+  // 3. The Sales Funnel (Vertical Bar Chart)
   const funnelStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
   const funnelData = funnelStages.map(stage => ({
     name: stage,
     count: leads.filter(l => (l.status || 'New') === stage).length
   }));
 
-  // 4. NEW: Lost Reason Breakdown (Donut Chart)
+  // 4. Lost Reason Breakdown (Donut Chart)
   const lostLeads = leads.filter(l => l.status === 'Closed - Lost' && l.lost_reason);
   const lostReasonCounts = lostLeads.reduce((acc, lead) => {
     acc[lead.lost_reason] = (acc[lead.lost_reason] || 0) + 1;
@@ -205,12 +194,12 @@ export default function Database() {
   
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#8b5cf6', '#ec4899', '#64748b'];
   const lostReasonData = Object.keys(lostReasonCounts).map((key, index) => ({
-    name: key.replace(/^[^\s]+\s/, ''), // Strips the emoji for cleaner legends
+    name: key.replace(/^[^\s]+\s/, ''),
     value: lostReasonCounts[key],
     color: COLORS[index % COLORS.length]
   }));
 
-  // 5. NEW: Lead Quality by Source (Stacked Bar Chart)
+  // 5. Lead Quality by Source (Stacked Bar Chart)
   const sources = [...new Set(leads.map(l => l.source || 'Unknown'))];
   const sourceQualityData = sources.map(source => {
     const sourceLeads = leads.filter(l => (l.source || 'Unknown') === source);
@@ -259,66 +248,6 @@ export default function Database() {
         </div>
       )}
 
-      <div 
-  className="hot-kpi" 
-  style={{ 
-    animationDelay:'240ms', 
-    background:'linear-gradient(135deg, rgba(127,29,29,0.22), rgba(154,52,18,0.12))', 
-    border:'1px solid rgba(239,68,68,0.3)', 
-    borderRadius:14, 
-    padding:'20px 22px', 
-    cursor:'pointer', 
-    position:'relative', 
-    overflow:'hidden' 
-  }}
-  onClick={() => setShowHotPipeline(v => !v)}
-  title="Click to reveal / hide Hot Pipeline value"
->
-  {/* Fire shimmer strip */}
-  <div style={{ 
-    position:'absolute', top:0, left:0, right:0, height:2, 
-    background:'linear-gradient(90deg, transparent, rgba(239,68,68,0.6), rgba(251,146,60,0.6), transparent)', 
-    borderRadius:'14px 14px 0 0' 
-  }} />
-
-  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-    <p className="section-label" style={{ color:'#fb923c', marginBottom:10 }}>
-      🔥 Hot Pipeline
-    </p>
-    <span style={{ 
-      fontFamily:'JetBrains Mono, monospace', fontSize:9, color:'#64748b', 
-      letterSpacing:'0.1em', textTransform:'uppercase', marginTop:2 
-    }}>
-      {hotPipelineCount} leads
-    </span>
-  </div>
-
-  {showHotPipeline ? (
-    <p style={{ 
-      fontSize:26, fontWeight:700, color:'#fca5a5', letterSpacing:'-0.02em', 
-      animation:'numberCount 0.35s ease both' 
-    }}>
-      ₹{hotPipelineValue.toLocaleString('en-IN')}
-    </p>
-  ) : (
-    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-      <p style={{ 
-        fontSize:22, fontWeight:700, color:'#475569', letterSpacing:'0.08em', 
-        filter:'blur(5px)', userSelect:'none' 
-      }}>
-        ₹——————
-      </p>
-      <span style={{ 
-        fontFamily:'JetBrains Mono, monospace', fontSize:9, color:'#64748b', 
-        letterSpacing:'0.1em', textTransform:'uppercase' 
-      }}>        
-        tap to reveal
-      </span>
-    </div>
-  )}
-</div>
-      
-
       {/* --- MODAL 2: LOST REASON OVERLAY --- */}
       {lostModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -339,7 +268,7 @@ export default function Database() {
             <button 
               onClick={() => {
                 setLostModal({ isOpen: false, leadId: null });
-                fetchLeads(); // Reset dropdown if they cancel
+                fetchLeads(); 
               }}
               className="mt-6 w-full py-3 text-secondary hover:text-white font-mono text-xs tracking-widest uppercase transition-colors"
             >
@@ -364,7 +293,7 @@ export default function Database() {
         
         {/* === ADMIN PANEL === */}
         {showAdmin && (
-          <div className="bg-red-900/10 border border-red-500/20 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-red-900/10 border border-red-500/20 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6 animate-fade-in">
             <div className="flex-1 w-full">
               <h3 className="text-red-400 font-mono text-sm uppercase tracking-widest mb-2">System Purge Protocol</h3>
             </div>
@@ -375,7 +304,7 @@ export default function Database() {
         )}
 
         {/* HEADER CONTROLS */}
-        <div className="border-b border-white/10 pb-6 flex justify-between items-end">
+        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Master CRM Analytics</h1>
           </div>
@@ -393,24 +322,56 @@ export default function Database() {
           </div>
         </div>
 
-        {/* KPIs */}
+        {/* ========================================== */}
+        {/* KPI DASHBOARD CARDS                        */}
+        {/* ========================================== */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          
           <div className="bg-white/5 border border-white/10 rounded-lg p-5">
             <div className="text-secondary font-mono text-xs uppercase tracking-wider mb-2">Total Pipeline</div>
             <div className="text-3xl font-bold text-white">₹{totalValue.toLocaleString('en-IN')}</div>
           </div>
+
+          {/* CUSTOM HOT PIPELINE REVEAL CARD */}
+          <div 
+            className="bg-red-900/20 border border-red-500/30 rounded-lg p-5 relative overflow-hidden cursor-pointer transition-colors hover:bg-red-900/30 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]"
+            onClick={() => setShowHotPipeline(v => !v)}
+            title="Click to reveal / hide Hot Pipeline value"
+          >
+            {/* Fire shimmer strip */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60"></div>
+            
+            <div className="flex justify-between items-start">
+              <p className="text-orange-400 font-mono text-xs uppercase tracking-wider mb-2">🔥 Hot Pipeline</p>
+              <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">{hotPipelineCount} leads</span>
+            </div>
+
+            {showHotPipeline ? (
+              <p className="text-3xl font-bold text-red-300 tracking-tight animate-fade-in">
+                ₹{hotPipelineValue.toLocaleString('en-IN')}
+              </p>
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-2xl font-bold text-slate-600 tracking-widest blur-[4px] select-none">
+                  ₹——————
+                </p>
+                <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase">
+                  tap to reveal
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="bg-green-900/20 border border-green-500/20 rounded-lg p-5">
             <div className="text-green-400 font-mono text-xs uppercase tracking-wider mb-2">✅ Closed Won</div>
             <div className="text-3xl font-bold text-white">{leads.filter(l => l.status === 'Closed - Won').length} Deals</div>
           </div>
+
           <div className="bg-blue-900/20 border border-blue-500/20 rounded-lg p-5">
             <div className="text-blue-400 font-mono text-xs uppercase tracking-wider mb-2">💼 Active Leads</div>
             <div className="text-3xl font-bold text-white">{activeLeads.length}</div>
           </div>
-          <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-5">
-            <div className="text-red-400 font-mono text-xs uppercase tracking-wider mb-2">❌ Closed Lost</div>
-            <div className="text-3xl font-bold text-white">{lostLeads.length} Deals</div>
-          </div>
+
         </div>
 
         {/* ========================================== */}
@@ -418,8 +379,6 @@ export default function Database() {
         {/* ========================================== */}
         {leads.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-2">
-            
-            {/* Sales Funnel */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
               <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">The Sales Funnel (Active/Won)</span>
               <ResponsiveContainer width="100%" height="100%">
@@ -432,7 +391,6 @@ export default function Database() {
               </ResponsiveContainer>
             </div>
 
-            {/* Lost Reason Donut */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
               <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lost Reason Breakdown</span>
               <ResponsiveContainer width="100%" height="100%">
@@ -457,8 +415,6 @@ export default function Database() {
         {/* ========================================== */}
         {leads.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-8">
-            
-            {/* Lead Quality By Source */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
               <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lead Quality by Source</span>
               <ResponsiveContainer width="100%" height="100%">
@@ -474,7 +430,6 @@ export default function Database() {
               </ResponsiveContainer>
             </div>
 
-            {/* Old Temperature Pie */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
               <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Active Lead Temperature</span>
               <ResponsiveContainer width="100%" height="100%">
@@ -532,7 +487,6 @@ export default function Database() {
                       </button>
                     </td>
                     
-                    {/* NEW: PIPELINE STAGE DROPDOWN */}
                     <td className="py-4 px-4 text-center">
                       <div className="flex flex-col gap-1 items-center">
                         <select 
@@ -557,7 +511,6 @@ export default function Database() {
                       </div>
                     </td>
 
-                    {/* OLD: TEMPERATURE DROPDOWN */}
                     <td className="py-4 px-4 text-center">
                       <select 
                         value={lead.lead_temp || 'Cold'} 
