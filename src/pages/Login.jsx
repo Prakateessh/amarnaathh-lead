@@ -16,7 +16,7 @@ export default function Login() {
     e.preventDefault();
     
     // Hardcoded Authentication Check
-    if (credentials.name === 'Admin' && credentials.password === 'Access123') {
+    if (credentials.name === 'Amarnaathh' && credentials.password === '123') {
       console.log('Authentication Successful');
       navigate('/home'); 
     } else {
