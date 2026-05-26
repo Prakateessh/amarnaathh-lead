@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import * as XLSX from 'xlsx'; // 📦 IMPORT THE EXCEL LIBRARY
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export default function Database() {
   const navigate = useNavigate();
@@ -14,10 +14,16 @@ export default function Database() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isWiping, setIsWiping] = useState(false);
 
-  // === NOTES MODAL STATE ===
+  // === MODAL STATES ===
   const [activeLead, setActiveLead] = useState(null);
   const [newNote, setNewNote] = useState("");
   const [isAppending, setIsAppending] = useState(false);
+  
+  // NEW: Lost Reason Modal State
+  const [lostModal, setLostModal] = useState({ isOpen: false, leadId: null });
+
+  const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
+  const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
 
   useEffect(() => {
     fetchLeads();
@@ -49,11 +55,33 @@ export default function Database() {
     }
   };
 
+  // === DATA EDITING HANDLERS ===
   const handleCellEdit = (id, field, value) => {
+    if (field === 'status' && value === 'Closed - Lost') {
+      // Trigger the modal if they select Lost
+      setLostModal({ isOpen: true, leadId: id });
+      return;
+    }
+
+    // Normal edit for anything else (including changing out of Lost status)
+    setLeads(prevLeads => prevLeads.map(lead => {
+      if (lead.id === id) {
+        let updatedLead = { ...lead, [field]: value };
+        // If changing status to something else, clear the lost reason
+        if (field === 'status') updatedLead.lost_reason = null;
+        return updatedLead;
+      }
+      return lead;
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleLostReasonSelect = (reason) => {
     setLeads(prevLeads => prevLeads.map(lead => 
-      lead.id === id ? { ...lead, [field]: value } : lead
+      lead.id === lostModal.leadId ? { ...lead, status: 'Closed - Lost', lost_reason: reason } : lead
     ));
     setHasUnsavedChanges(true);
+    setLostModal({ isOpen: false, leadId: null });
   };
 
   const handleSaveChanges = async () => {
@@ -72,7 +100,6 @@ export default function Database() {
   const handleWipeDatabase = async () => {
     const confirmText = window.prompt("⚠️ Type 'DELETE' to confirm full database wipe:");
     if (confirmText !== "DELETE") return;
-
     try {
       setIsWiping(true);
       const { error } = await supabase.from('leads').delete().not('id', 'is', null);
@@ -87,37 +114,23 @@ export default function Database() {
     }
   };
 
-  // === TIMESTAMPED NOTE APPENDER ===
   const handleAppendNote = async () => {
     if (!newNote.trim() || !activeLead) return;
-
     try {
       setIsAppending(true);
-      
-      // 1. Generate Timestamp [YYYY-MM-DD HH:MM]
       const now = new Date();
       const timestamp = `[${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}]`;
       
-      // 2. Combine old notes with new note
       const updatedNotes = activeLead.notes 
         ? `${activeLead.notes}\n${timestamp} ${newNote.trim()}`
         : `${timestamp} ${newNote.trim()}`;
 
-      // 3. Save directly to Supabase immediately
-      const { error } = await supabase
-        .from('leads')
-        .update({ notes: updatedNotes })
-        .eq('id', activeLead.id);
-
+      const { error } = await supabase.from('leads').update({ notes: updatedNotes }).eq('id', activeLead.id);
       if (error) throw error;
 
-      // 4. Update local state so UI updates instantly
       setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, notes: updatedNotes } : l));
-      
-      // 5. Cleanup
       setNewNote("");
-      setActiveLead(null); // Closes Modal
-
+      setActiveLead(null);
     } catch (error) {
       alert(`Failed to append note: ${error.message}`);
     } finally {
@@ -125,11 +138,8 @@ export default function Database() {
     }
   };
 
-  // === NEW: EXPORT TO EXCEL FUNCTION ===
   const handleDownloadExcel = () => {
     if (leads.length === 0) return;
-
-    // Map the internal data to clean, analyst-friendly column headers
     const excelData = leads.map(lead => ({
       'Date Imported': lead.date || '',
       'Source': lead.source || '',
@@ -138,62 +148,79 @@ export default function Database() {
       'Phone': lead.phone || '',
       'Location': lead.location || '',
       'Requirement': lead.requirement || '',
+      'Pipeline Stage': lead.status || 'New',
       'Temperature': lead.lead_temp || 'Cold',
-      'Pipeline Value (₹)': Number(lead.price) || 0,
+      'Value (₹)': Number(lead.price) || 0,
+      'Lost Reason': lead.lost_reason || '',
       'Internal Notes': lead.notes || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-    // Auto-size columns for readability in Excel
-    const columnWidths = [
-      { wch: 15 }, // Date
-      { wch: 15 }, // Source
-      { wch: 25 }, // Name
-      { wch: 30 }, // Company
-      { wch: 15 }, // Phone
-      { wch: 20 }, // Location
-      { wch: 45 }, // Requirement
-      { wch: 15 }, // Temperature
-      { wch: 20 }, // Value
-      { wch: 60 }  // Notes
-    ];
-    worksheet['!cols'] = columnWidths;
-
+    worksheet['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 50 }];
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Master CRM Pipeline");
-    
-    // Generate filename with today's date
-    const today = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `Master_CRM_Export_${today}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Master Pipeline");
+    XLSX.writeFile(workbook, `CRM_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // --- KPI CALCULATIONS ---
-  const hotCount = leads.filter(l => l.lead_temp === 'Hot').length;
-  const warmCount = leads.filter(l => l.lead_temp === 'Warm').length;
-  const coldCount = leads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length;
+  // ==========================================
+  // 📊 DATA ANALYTICS & GRAPH CALCULATIONS
+  // ==========================================
+
+  // 1. KPI Bar Stats
   const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
-  const hotValue = leads.filter(l => l.lead_temp === 'Hot').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-  const warmValue = leads.filter(l => l.lead_temp === 'Warm').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-  const coldValue = leads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-
+  const activeLeads = leads.filter(l => l.status !== 'Closed - Lost');
+  
+  // 2. Old Graphs (Temperature & Value)
   const pieData = [
-    { name: 'Hot', value: hotCount, color: '#ef4444' },
-    { name: 'Warm', value: warmCount, color: '#f59e0b' },
-    { name: 'Cold', value: coldCount, color: '#06b6d4' }
+    { name: 'Hot', value: activeLeads.filter(l => l.lead_temp === 'Hot').length, color: '#ef4444' },
+    { name: 'Warm', value: activeLeads.filter(l => l.lead_temp === 'Warm').length, color: '#f59e0b' },
+    { name: 'Cold', value: activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length, color: '#06b6d4' }
   ].filter(d => d.value > 0);
 
-  const barData = [
-    { name: 'Hot', value: hotValue, fill: '#ef4444' },
-    { name: 'Warm', value: warmValue, fill: '#f59e0b' },
-    { name: 'Cold', value: coldValue, fill: '#06b6d4' }
-  ].filter(d => d.value > 0);
+  const barData = pieData.map(d => ({
+    name: d.name, 
+    fill: d.color,
+    value: activeLeads.filter(l => (l.lead_temp || 'Cold') === d.name).reduce((sum, l) => sum + (Number(l.price) || 0), 0)
+  })).filter(d => d.value > 0);
+
+  // 3. NEW: The Sales Funnel (Vertical Bar Chart)
+  const funnelStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
+  const funnelData = funnelStages.map(stage => ({
+    name: stage,
+    count: leads.filter(l => (l.status || 'New') === stage).length
+  }));
+
+  // 4. NEW: Lost Reason Breakdown (Donut Chart)
+  const lostLeads = leads.filter(l => l.status === 'Closed - Lost' && l.lost_reason);
+  const lostReasonCounts = lostLeads.reduce((acc, lead) => {
+    acc[lead.lost_reason] = (acc[lead.lost_reason] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const COLORS = ['#ef4444', '#f97316', '#eab308', '#8b5cf6', '#ec4899', '#64748b'];
+  const lostReasonData = Object.keys(lostReasonCounts).map((key, index) => ({
+    name: key.replace(/^[^\s]+\s/, ''), // Strips the emoji for cleaner legends
+    value: lostReasonCounts[key],
+    color: COLORS[index % COLORS.length]
+  }));
+
+  // 5. NEW: Lead Quality by Source (Stacked Bar Chart)
+  const sources = [...new Set(leads.map(l => l.source || 'Unknown'))];
+  const sourceQualityData = sources.map(source => {
+    const sourceLeads = leads.filter(l => (l.source || 'Unknown') === source);
+    return {
+      name: source,
+      Won: sourceLeads.filter(l => l.status === 'Closed - Won').length,
+      Active: sourceLeads.filter(l => l.status !== 'Closed - Won' && l.status !== 'Closed - Lost').length,
+      Lost: sourceLeads.filter(l => l.status === 'Closed - Lost').length,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
 
-      {/* --- NOTES MODAL OVERLAY --- */}
+      {/* --- MODAL 1: NOTES OVERLAY --- */}
       {activeLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-navy border border-white/20 p-6 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col gap-4">
@@ -206,26 +233,51 @@ export default function Database() {
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-
-            {/* Note History Area */}
             <div className="bg-black/30 rounded border border-white/5 p-4 h-64 overflow-y-auto font-mono text-sm text-gray-300 whitespace-pre-wrap">
               {activeLead.notes ? activeLead.notes : "No notes recorded yet."}
             </div>
-
-            {/* Input Area */}
             <textarea 
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               placeholder="Type new update here..."
               className="bg-white/5 border border-white/20 rounded p-3 text-white font-sans focus:outline-none focus:border-primary resize-none h-24"
             />
-            
             <button 
               onClick={handleAppendNote}
               disabled={isAppending || !newNote.trim()}
-              className="bg-primary hover:bg-blue-600 disabled:bg-gray-600 text-white font-mono text-sm tracking-widest uppercase py-3 rounded transition-colors flex justify-center items-center"
+              className="bg-primary hover:bg-blue-600 disabled:bg-gray-600 text-white font-mono text-sm tracking-widest uppercase py-3 rounded transition-colors"
             >
               {isAppending ? 'Appending...' : '📌 Append Note'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 2: LOST REASON OVERLAY --- */}
+      {lostModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-navy border border-red-500/30 p-6 rounded-lg shadow-2xl max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-2">Deal Lost</h2>
+            <p className="text-secondary text-sm mb-6">Select the primary reason this deal was lost to update your analytics.</p>
+            <div className="flex flex-col gap-3">
+              {lostReasons.map(reason => (
+                <button 
+                  key={reason}
+                  onClick={() => handleLostReasonSelect(reason)}
+                  className="bg-white/5 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/50 border border-white/10 text-white text-left px-4 py-3 rounded transition-colors text-sm font-medium"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => {
+                setLostModal({ isOpen: false, leadId: null });
+                fetchLeads(); // Reset dropdown if they cancel
+              }}
+              className="mt-6 w-full py-3 text-secondary hover:text-white font-mono text-xs tracking-widest uppercase transition-colors"
+            >
+              Cancel
             </button>
           </div>
         </div>
@@ -249,7 +301,6 @@ export default function Database() {
           <div className="bg-red-900/10 border border-red-500/20 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex-1 w-full">
               <h3 className="text-red-400 font-mono text-sm uppercase tracking-widest mb-2">System Purge Protocol</h3>
-              <p className="text-onSurfaceVariant text-xs">Danger: Wiping the database is permanent and cannot be undone.</p>
             </div>
             <button onClick={handleWipeDatabase} disabled={isWiping} className="bg-red-600 hover:bg-red-500 text-white font-mono text-sm uppercase px-6 py-3 rounded whitespace-nowrap">
               {isWiping ? 'Wiping...' : 'PURGE DATABASE'}
@@ -257,20 +308,16 @@ export default function Database() {
           </div>
         )}
 
+        {/* HEADER CONTROLS */}
         <div className="border-b border-white/10 pb-6 flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Central CRM Analytics</h1>
+            <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Master CRM Analytics</h1>
           </div>
           <div className="flex gap-4">
-            {/* 💾 NEW: EXPORT TO EXCEL BUTTON */}
-            <button 
-              onClick={handleDownloadExcel}
-              className="border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase px-4 py-2 rounded transition-colors flex items-center gap-2"
-            >
+            <button onClick={handleDownloadExcel} className="border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase px-4 py-2 rounded transition-colors flex items-center gap-2">
               <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
               Export Data
             </button>
-
             {hasUnsavedChanges && (
               <button onClick={handleSaveChanges} disabled={isSaving} className="bg-green-600 hover:bg-green-500 text-white font-mono text-sm tracking-widest uppercase px-6 py-2 rounded animate-pulse">
                 {isSaving ? 'Saving...' : '💾 Save Changes'}
@@ -286,62 +333,112 @@ export default function Database() {
             <div className="text-secondary font-mono text-xs uppercase tracking-wider mb-2">Total Pipeline</div>
             <div className="text-3xl font-bold text-white">₹{totalValue.toLocaleString('en-IN')}</div>
           </div>
+          <div className="bg-green-900/20 border border-green-500/20 rounded-lg p-5">
+            <div className="text-green-400 font-mono text-xs uppercase tracking-wider mb-2">✅ Closed Won</div>
+            <div className="text-3xl font-bold text-white">{leads.filter(l => l.status === 'Closed - Won').length} Deals</div>
+          </div>
+          <div className="bg-blue-900/20 border border-blue-500/20 rounded-lg p-5">
+            <div className="text-blue-400 font-mono text-xs uppercase tracking-wider mb-2">💼 Active Leads</div>
+            <div className="text-3xl font-bold text-white">{activeLeads.length}</div>
+          </div>
           <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-5">
-            <div className="text-red-400 font-mono text-xs uppercase tracking-wider mb-2">🔥 Hot Value</div>
-            <div className="text-3xl font-bold text-white">₹{hotValue.toLocaleString('en-IN')}</div>
-          </div>
-          <div className="bg-amber-900/20 border border-amber-500/20 rounded-lg p-5">
-            <div className="text-amber-500 font-mono text-xs uppercase tracking-wider mb-2">🌡️ Warm Value</div>
-            <div className="text-3xl font-bold text-white">₹{warmValue.toLocaleString('en-IN')}</div>
-          </div>
-          <div className="bg-cyan-900/20 border border-cyan-500/20 rounded-lg p-5">
-            <div className="text-cyan-400 font-mono text-xs uppercase tracking-wider mb-2">❄️ Cold Value</div>
-            <div className="text-3xl font-bold text-white">₹{coldValue.toLocaleString('en-IN')}</div>
+            <div className="text-red-400 font-mono text-xs uppercase tracking-wider mb-2">❌ Closed Lost</div>
+            <div className="text-3xl font-bold text-white">{lostLeads.length} Deals</div>
           </div>
         </div>
 
-        {/* CHARTS */}
+        {/* ========================================== */}
+        {/* GRAPH ROW 1: THE FUNNEL & LOST REASONS     */}
+        {/* ========================================== */}
         {leads.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-2">
+            
+            {/* Sales Funnel */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lead Temperature</span>
+              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">The Sales Funnel (Active/Won)</span>
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                </PieChart>
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} width={100} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Lost Reason Donut */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Pipeline Value</span>
+              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lost Reason Breakdown</span>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
-                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {barData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                  </Bar>
-                </BarChart>
+                {lostReasonData.length > 0 ? (
+                  <PieChart>
+                    <Pie data={lostReasonData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                      {lostReasonData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}/>
+                  </PieChart>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-secondary font-mono text-xs">No lost deals yet.</div>
+                )}
               </ResponsiveContainer>
             </div>
           </div>
         )}
 
-        {/* DATA GRID */}
+        {/* ========================================== */}
+        {/* GRAPH ROW 2: SOURCES & TEMPERATURE         */}
+        {/* ========================================== */}
+        {leads.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-8">
+            
+            {/* Lead Quality By Source */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
+              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lead Quality by Source</span>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sourceQualityData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis hide />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
+                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                  <Bar dataKey="Won" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="Active" stackId="a" fill="#3b82f6" />
+                  <Bar dataKey="Lost" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Old Temperature Pie */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
+              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Active Lead Temperature</span>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={0} outerRadius={80} dataKey="value">
+                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* DATA GRID WITH NEW PIPELINE DROPDOWN       */}
+        {/* ========================================== */}
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center text-secondary font-mono">LOADING DATA...</div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+            <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr className="border-b border-white/10 text-secondary font-mono text-xs uppercase tracking-wider">
-                  <th className="py-4 px-4 font-medium">Date</th>
+                  <th className="py-4 px-4 font-medium">Date/Source</th>
                   <th className="py-4 px-4 font-medium">Client Info</th>
                   <th className="py-4 px-4 font-medium">Requirement</th>
-                  <th className="py-4 px-4 font-medium text-center">Temperature</th>
+                  <th className="py-4 px-4 font-medium text-center">Pipeline Stage</th>
+                  <th className="py-4 px-4 font-medium text-center">Temp</th>
                   <th className="py-4 px-4 font-medium text-right">Value (₹)</th>
                 </tr>
               </thead>
@@ -359,7 +456,7 @@ export default function Database() {
                       <div className="text-onSurfaceVariant text-xs mt-1">{lead.company_name || '—'} | {lead.phone}</div>
                     </td>
                     
-                    <td className="py-4 px-4 max-w-xs">
+                    <td className="py-4 px-4 max-w-[250px]">
                       <div className="text-white font-medium truncate mb-2">{lead.requirement}</div>
                       <button 
                         onClick={() => setActiveLead(lead)}
@@ -369,11 +466,37 @@ export default function Database() {
                       </button>
                     </td>
                     
+                    {/* NEW: PIPELINE STAGE DROPDOWN */}
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex flex-col gap-1 items-center">
+                        <select 
+                          value={lead.status || 'New'}
+                          onChange={(e) => handleCellEdit(lead.id, 'status', e.target.value)}
+                          className={`bg-navy border px-2 py-1.5 rounded font-mono text-xs focus:outline-none focus:border-primary transition-colors w-32 ${
+                            lead.status === 'Closed - Won' ? 'border-green-500/50 text-green-400' : 
+                            lead.status === 'Closed - Lost' ? 'border-red-500/50 text-red-400' : 
+                            lead.status === 'Negotiation' ? 'border-purple-500/50 text-purple-400' :
+                            'border-white/20 text-white'
+                          }`}
+                        >
+                          {pipelineStages.map(stage => (
+                            <option key={stage} value={stage}>{stage}</option>
+                          ))}
+                        </select>
+                        {lead.status === 'Closed - Lost' && lead.lost_reason && (
+                          <span className="text-[9px] text-red-400/80 font-mono truncate max-w-[120px]" title={lead.lost_reason}>
+                            ↳ {lead.lost_reason}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* OLD: TEMPERATURE DROPDOWN */}
                     <td className="py-4 px-4 text-center">
                       <select 
                         value={lead.lead_temp || 'Cold'} 
                         onChange={(e) => handleCellEdit(lead.id, 'lead_temp', e.target.value)}
-                        className={`bg-navy border px-3 py-1.5 rounded font-mono text-xs focus:outline-none focus:border-primary transition-colors ${
+                        className={`bg-navy border px-2 py-1.5 rounded font-mono text-xs focus:outline-none focus:border-primary transition-colors ${
                           lead.lead_temp === 'Hot' ? 'border-red-500/50 text-red-400' : 
                           lead.lead_temp === 'Warm' ? 'border-amber-500/50 text-amber-400' : 
                           'border-cyan-500/50 text-cyan-400'
@@ -393,7 +516,7 @@ export default function Database() {
                           value={lead.price || ''}
                           onChange={(e) => handleCellEdit(lead.id, 'price', e.target.value)}
                           placeholder="0"
-                          className="bg-navy border border-white/10 px-3 py-1.5 rounded font-mono text-sm text-green-400 focus:outline-none focus:border-green-500 w-28 text-right transition-colors hover:border-white/30"
+                          className="bg-navy border border-white/10 px-3 py-1.5 rounded font-mono text-sm text-green-400 focus:outline-none focus:border-green-500 w-24 text-right transition-colors hover:border-white/30"
                         />
                       </div>
                     </td>
