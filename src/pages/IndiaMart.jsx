@@ -15,9 +15,8 @@ export default function IndiaMart() {
     end: today.toISOString().split('T')[0]
   });
 
-  // 🍪 State variables
   const [cookieString, setCookieString] = useState(localStorage.getItem('im_cookie') || "");
-  const [showCookieInput, setShowCookieInput] = useState(false); // NEW: Controls visibility of the input box
+  const [showCookieInput, setShowCookieInput] = useState(false); 
   
   const [leads, setLeads] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -28,8 +27,36 @@ export default function IndiaMart() {
     localStorage.setItem('im_cookie', e.target.value);
   };
 
+  // 🛠️ NEW: Auto-Formatter to convert your custom format into a standard web cookie
+  const normalizeCookie = (raw) => {
+    // If it detects colons and quotes (like 'key': 'value'), it translates it!
+    if (raw.includes(':') && (raw.includes("'") || raw.includes('"'))) {
+      const lines = raw.split('\n');
+      const formattedParts = [];
+      
+      lines.forEach(line => {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) return;
+        
+        // Extract key and value
+        let key = line.slice(0, colonIdx).trim();
+        let val = line.slice(colonIdx + 1).trim();
+        
+        // Strip out quotes and trailing commas
+        key = key.replace(/^['"]|['"]$/g, '');
+        val = val.replace(/,$/, '').trim().replace(/^['"]|['"]$/g, '');
+        
+        if (key) {
+          formattedParts.push(`${key}=${val}`);
+        }
+      });
+      return formattedParts.join('; ');
+    }
+    // If it's already a standard string, just return it normally
+    return raw.trim();
+  };
+
   const handleFetch = async () => {
-    // If there is no cookie at all, show the box immediately
     if (!cookieString.trim()) {
       setStatus({ type: 'error', message: '⚠️ Authentication Error: Please paste your IndiaMart Cookie.' });
       setShowCookieInput(true); 
@@ -45,13 +72,16 @@ export default function IndiaMart() {
     setStatus({ type: '', message: '' });
 
     try {
+      // Use the auto-formatter right before sending to the backend
+      const finalCookie = normalizeCookie(cookieString);
+
       const response = await fetch(`https://python-backend-tdjw.onrender.com/api/scrape/indiamart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           start: dates.start,
           end: dates.end,
-          cookie_string: cookieString.trim()
+          cookie_string: finalCookie // Send the perfectly formatted string
         })
       });
       
@@ -59,11 +89,9 @@ export default function IndiaMart() {
       const result = await response.json();
       
       if (result.total === 0) {
-        // If 0 leads are found, the cookie likely expired. Show the box so they can update it.
         setStatus({ type: 'error', message: '❌ Zero leads found. Your cookie may have expired.' });
         setShowCookieInput(true);
       } else {
-        // Success! Hide the cookie box to keep the UI clean.
         setLeads(result.data);
         setStatus({ type: 'success', message: `✅ Successfully extracted ${result.total} leads from IndiaMart.` });
         setShowCookieInput(false); 
@@ -72,7 +100,7 @@ export default function IndiaMart() {
     } catch (error) {
       console.error("Fetch Error:", error);
       setStatus({ type: 'error', message: '❌ Connection failed or Cookie invalid.' });
-      setShowCookieInput(true); // Pop open the box just in case it was an auth error
+      setShowCookieInput(true); 
     } finally {
       setIsFetching(false);
     }
@@ -162,20 +190,20 @@ export default function IndiaMart() {
               <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Data Extraction</h1>
               <p className="text-onSurfaceVariant text-sm mt-2 mb-4">Pull inbound requests directly from the IndiaMart vendor API.</p>
               
-              {/* 👁️ CONDITIONAL RENDER: Only shows if showCookieInput is true */}
               {showCookieInput && (
                 <div className="flex flex-col gap-2 animate-fade-in">
                   <label className="font-mono text-xs text-secondary tracking-widest uppercase">
-                    Session Cookie String <span className="text-red-400">*</span>
+                    Session Cookie Data <span className="text-red-400">*</span>
                   </label>
-                  <input 
-                    type="password" 
+                  {/* 🛠️ NEW: Changed from <input> to <textarea> to allow multi-line dictionary pasting! */}
+                  <textarea 
                     value={cookieString} 
                     onChange={handleCookieChange}
-                    placeholder="Paste fresh raw 'cookie' string here..." 
-                    className="bg-black/30 border border-red-500/50 px-3 py-2 rounded text-white font-mono text-xs focus:border-primary focus:outline-none w-full" 
+                    rows="4"
+                    placeholder={"Paste your cookie here...\n'pop_mthd': 'FL%3D...', etc."} 
+                    className="bg-black/30 border border-red-500/50 px-3 py-2 rounded text-white font-mono text-xs focus:border-primary focus:outline-none w-full resize-y" 
                   />
-                  <span className="text-xs text-red-300">Previous cookie expired. Please provide a new one to continue.</span>
+                  <span className="text-xs text-red-300">Previous cookie expired. Paste the new array/string above to continue.</span>
                 </div>
               )}
             </div>
