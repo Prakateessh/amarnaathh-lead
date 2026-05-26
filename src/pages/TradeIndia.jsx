@@ -30,7 +30,7 @@ export default function TradeIndia() {
 
     try {
       // 🔌 Pinging the NEW TradeIndia Endpoint
-      const response = await fetch(`http://127.0.0.1:8000/api/scrape/tradeindia?start=${dates.start}&end=${dates.end}`);
+      const response = await fetch(`https://python-backend-tdjw.onrender.com/api/scrape/tradeindia?start=${dates.start}&end=${dates.end}`);
       
       if (!response.ok) {
         throw new Error(`Server Error: ${response.status}`);
