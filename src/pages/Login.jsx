@@ -18,6 +18,10 @@ export default function Login() {
     // Hardcoded Authentication Check
     if (credentials.name === 'Amarnaathh' && credentials.password === '123') {
       console.log('Authentication Successful');
+      
+      // 🛑 NEW: Hand the browser the "Gatekeeper Key"
+      localStorage.setItem('isLoggedIn', 'true');
+      
       navigate('/home'); 
     } else {
       setError('Invalid Name or Passcode. Access Denied.');
