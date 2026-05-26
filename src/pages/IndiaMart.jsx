@@ -30,7 +30,7 @@ export default function IndiaMart() {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/scrape/indiamart?start=${dates.start}&end=${dates.end}`);
+      const response = await fetch(`https://python-backend-tdjw.onrender.com/api/scrape/indiamart?start=${dates.start}&end=${dates.end}`);
       
       if (!response.ok) {
         throw new Error(`Server Error: ${response.status}`);
