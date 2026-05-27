@@ -446,6 +446,22 @@ export default function Database() {
         )}
 
         {/* ========================================== */}
+        {/* 🚀 NEW: DETAILED ANALYTICS NAVIGATION      */}
+        {/* ========================================== */}
+        <div className="w-full flex justify-center items-center py-8 mb-8 border-y border-white/5 bg-gradient-to-r from-transparent via-blue-900/10 to-transparent">
+          <button 
+            onClick={() => navigate('/analytics')}
+            className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] group"
+          >
+            <svg className="w-5 h-5 text-blue-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Open Detailed Analytics Portal
+          </button>
+        </div>
+        {/* 👆 END OF NEW BLOCK 👆 */}
+
+        {/* ========================================== */}
         {/* DATA GRID WITH NEW PIPELINE DROPDOWN       */}
         {/* ========================================== */}
         <div className="overflow-x-auto">
