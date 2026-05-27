@@ -19,6 +19,10 @@ export default function Database() {
   const [newNote, setNewNote] = useState("");
   const [isAppending, setIsAppending] = useState(false);
   const [lostModal, setLostModal] = useState({ isOpen: false, leadId: null });
+  
+  // NEW: User Note Selection
+  const [noteUser, setNoteUser] = useState("User 1");
+  const users = ["User 1", "User 2", "User 3", "User 4"];
 
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
   const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
@@ -109,12 +113,14 @@ export default function Database() {
     }
   };
 
+  // 📝 UPDATED APPEND NOTE LOGIC
   const handleAppendNote = async () => {
     if (!newNote.trim() || !activeLead) return;
     try {
       setIsAppending(true);
       const now = new Date();
-      const timestamp = `[${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}]`;
+      // Added [User X] stamp to the timestamp!
+      const timestamp = `[${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}] [${noteUser}]`;
       
       const updatedNotes = activeLead.notes 
         ? `${activeLead.notes}\n${timestamp} ${newNote.trim()}`
@@ -123,9 +129,14 @@ export default function Database() {
       const { error } = await supabase.from('leads').update({ notes: updatedNotes }).eq('id', activeLead.id);
       if (error) throw error;
 
+      // Update background list
       setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, notes: updatedNotes } : l));
+      
+      // Update the active modal immediately so we don't have to close it!
+      setActiveLead(prev => ({ ...prev, notes: updatedNotes }));
+      
       setNewNote("");
-      setActiveLead(null);
+      // Notice: We NO LONGER call setActiveLead(null) so the modal stays wide open.
     } catch (error) {
       alert(`Failed to append note: ${error.message}`);
     } finally {
@@ -173,7 +184,6 @@ export default function Database() {
   const coldPipelineValue = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   const coldPipelineCount = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length;
 
-  // Pie Data formatted for the new Full-Width chart
   const pieData = [
     { name: '🔥 Hot Deals', value: hotPipelineCount, color: '#ef4444' },
     { name: '🌡️ Warm Deals', value: warmPipelineCount, color: '#f59e0b' },
@@ -197,22 +207,38 @@ export default function Database() {
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            
             <div className="bg-black/30 rounded border border-white/5 p-4 h-64 overflow-y-auto font-mono text-sm text-gray-300 whitespace-pre-wrap">
               {activeLead.notes ? activeLead.notes : "No notes recorded yet."}
             </div>
+            
             <textarea 
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               placeholder="Type new update here..."
               className="bg-white/5 border border-white/20 rounded p-3 text-white font-sans focus:outline-none focus:border-primary resize-none h-24"
             />
-            <button 
-              onClick={handleAppendNote}
-              disabled={isAppending || !newNote.trim()}
-              className="bg-primary hover:bg-blue-600 disabled:bg-gray-600 text-white font-mono text-sm tracking-widest uppercase py-3 rounded transition-colors"
-            >
-              {isAppending ? 'Appending...' : '📌 Append Note'}
-            </button>
+            
+            {/* NEW: User Selection and Append Button Row */}
+            <div className="flex gap-4">
+              <select 
+                value={noteUser} 
+                onChange={(e) => setNoteUser(e.target.value)}
+                className="bg-navy border border-white/20 px-4 py-3 rounded text-white font-mono text-sm focus:outline-none focus:border-primary w-40 transition-colors"
+              >
+                {users.map(u => (
+                  <option key={u} value={u} className="bg-slate-900 text-white">{u}</option>
+                ))}
+              </select>
+
+              <button 
+                onClick={handleAppendNote}
+                disabled={isAppending || !newNote.trim()}
+                className="flex-1 bg-primary hover:bg-blue-600 disabled:bg-gray-600 text-white font-mono text-sm tracking-widest uppercase py-3 rounded transition-colors"
+              >
+                {isAppending ? 'Appending...' : '📌 Append Note'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -340,7 +366,7 @@ export default function Database() {
         {/* FULL WIDTH TEMPERATURE DONUT CHART         */}
         {/* ========================================== */}
         {leads.length > 0 && pieData.length > 0 && (
-          <div className="w-full bg-white/5 border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center h-[420px] mb-2 relative overflow-hidden shadow-2xl">
+          <div className="w-full bg-white/5 border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center h-[500px] mb-2 relative overflow-hidden shadow-2xl">
             {/* Background ambient glow behind the chart */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-white/5 rounded-full blur-[80px] pointer-events-none"></div>
 
@@ -349,13 +375,14 @@ export default function Database() {
             </span>
             
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              {/* 🛠️ FIX: Added large margins so the shadow/edges never touch the box boundary and clip */}
+              <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
                 <Pie 
                   data={pieData} 
                   cx="50%" 
                   cy="50%" 
                   innerRadius={110} 
-                  outerRadius={150} 
+                  outerRadius={140} 
                   paddingAngle={6} 
                   dataKey="value"
                   stroke="none"
