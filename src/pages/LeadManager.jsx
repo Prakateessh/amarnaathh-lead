@@ -160,7 +160,7 @@ export default function LeadManager() {
     filters.status.forEach(s   => chips.push({ label: `Stage: ${s}`,   remove: () => toggleFilter('status', s) }));
     filters.lead_temp.forEach(t => chips.push({ label: `Temp: ${t}`,   remove: () => toggleFilter('lead_temp', t) }));
     if (filters.dateStart) chips.push({ label: `From: ${filters.dateStart}`, remove: () => setFilters(p => ({ ...p, dateStart: '' })) });
-    if (filters.dateEnd)   chips.push({ label: `To: ${filters.dateEnd}`,     remove: () => setFilters(p => ({ ...p, dateEnd: '' })) });
+    if (filters.dateEnd)   chips.push({ label: `To: ${filters.dateEnd}`,      remove: () => setFilters(p => ({ ...p, dateEnd: '' })) });
     if (filters.priceMin !== '') chips.push({ label: `Min ₹${Number(filters.priceMin).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMin: '' })) });
     if (filters.priceMax !== '') chips.push({ label: `Max ₹${Number(filters.priceMax).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMax: '' })) });
     return chips;
@@ -278,6 +278,8 @@ export default function LeadManager() {
       'Phone': lead.phone || '',
       'Location': lead.location || '',
       'Requirement': lead.requirement || '',
+      'Tentative Call': lead.tentative_call_date || '',
+      'GMeet Date': lead.gmeet_date || '',
       'Pipeline Stage': lead.status || 'New',
       'Temperature': lead.lead_temp || 'Cold',
       'Value (₹)': Number(lead.price) || 0,
@@ -287,7 +289,7 @@ export default function LeadManager() {
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     worksheet['!cols'] = [
       { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
-      { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 50 }
+      { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 50 }
     ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Filtered Leads');
@@ -348,7 +350,7 @@ export default function LeadManager() {
       )}
 
       {/* Navigation */}
-      <div className="w-full max-w-[95%] xl:max-w-7xl flex justify-between items-center mb-8 relative z-10">
+      <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
         <button onClick={() => navigate('/database')} className="text-secondary hover:text-primary font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Analytics
@@ -359,7 +361,7 @@ export default function LeadManager() {
         </span>
       </div>
 
-      <div className="glass-modal w-full max-w-[95%] xl:max-w-7xl p-8 relative z-10 flex flex-col gap-6 shadow-2xl">
+      <div className="glass-modal w-full max-w-[95%] xl:max-w-[95%] p-8 relative z-10 flex flex-col gap-6 shadow-2xl">
 
         {/* Header */}
         <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -559,6 +561,7 @@ export default function LeadManager() {
                       <span className="flex items-center">Client Info <SortBtn col="name" /></span>
                     </th>
                     <th className="py-4 px-2 font-medium">Requirement</th>
+                    <th className="py-4 px-2 font-medium text-center">Dates (Call/Meet)</th>
                     <th className="py-4 px-2 font-medium text-center">
                       <span className="flex items-center justify-center">Stage <SortBtn col="status" /></span>
                     </th>
@@ -609,6 +612,25 @@ export default function LeadManager() {
                         </div>
                       </td>
 
+                      <td className="py-4 px-2">
+                        <div className="flex flex-col gap-1 w-40">
+                          <label className="text-[9px] text-secondary font-mono uppercase">Call</label>
+                          <input 
+                            type="date" 
+                            defaultValue={lead.tentative_call_date || ''} 
+                            onBlur={e => handleCellEdit(lead.id, 'tentative_call_date', e.target.value)}
+                            className="bg-transparent border border-white/10 hover:border-white/20 focus:border-primary px-1 py-0.5 rounded text-white font-mono text-[10px] outline-none transition-colors"
+                          />
+                          <label className="text-[9px] text-secondary font-mono uppercase mt-1">GMeet</label>
+                          <input 
+                            type="date" 
+                            defaultValue={lead.gmeet_date || ''} 
+                            onBlur={e => handleCellEdit(lead.id, 'gmeet_date', e.target.value)}
+                            className="bg-transparent border border-white/10 hover:border-white/20 focus:border-primary px-1 py-0.5 rounded text-white font-mono text-[10px] outline-none transition-colors"
+                          />
+                        </div>
+                      </td>
+
                       <td className="py-4 px-2 text-center">
                         <div className="flex flex-col gap-1 items-center">
                           <select value={lead.status || 'New'} onChange={e => handleCellEdit(lead.id, 'status', e.target.value)}
@@ -640,9 +662,9 @@ export default function LeadManager() {
                       </td>
 
                       <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1 w-full">
                           <span className="text-green-500 font-mono text-sm">₹</span>
-                          <input type="number" defaultValue={lead.price || ''} placeholder="0" onBlur={e => { if (e.target.value !== String(lead.price)) handleCellEdit(lead.id, 'price', e.target.value); }} className="bg-transparent border border-transparent hover:border-white/20 focus:bg-navy focus:border-green-500 px-2 py-1.5 rounded font-mono text-sm text-green-400 focus:outline-none w-24 text-right transition-colors" />
+                          <input type="number" defaultValue={lead.price || ''} placeholder="0" onBlur={e => { if (e.target.value !== String(lead.price)) handleCellEdit(lead.id, 'price', e.target.value); }} className="bg-transparent border border-transparent hover:border-white/20 focus:bg-navy focus:border-green-500 px-2 py-1.5 rounded font-mono text-sm text-green-400 focus:outline-none w-32 text-right transition-colors" />
                         </div>
                       </td>
 
@@ -669,6 +691,3 @@ export default function LeadManager() {
     </div>
   );
 }
-
-
-
