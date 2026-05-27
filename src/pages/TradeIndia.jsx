@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx'; // 📦 IMPORT THE EXCEL LIBRARY
@@ -6,18 +6,37 @@ import * as XLSX from 'xlsx'; // 📦 IMPORT THE EXCEL LIBRARY
 export default function TradeIndia() {
   const navigate = useNavigate();
 
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const [dates, setDates] = useState({
-    start: yesterday.toISOString().split('T')[0],
-    end: today.toISOString().split('T')[0]
+  // 🧠 MEMORY UPGRADE 1: Initialize Dates from Session Storage (or default to yesterday/today)
+  const [dates, setDates] = useState(() => {
+    const savedDates = sessionStorage.getItem('ti_dates');
+    if (savedDates) return JSON.parse(savedDates);
+    
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return {
+      start: yesterday.toISOString().split('T')[0],
+      end: today.toISOString().split('T')[0]
+    };
   });
 
-  const [leads, setLeads] = useState([]);
+  // 🧠 MEMORY UPGRADE 2: Initialize Leads from Session Storage
+  const [leads, setLeads] = useState(() => {
+    const savedLeads = sessionStorage.getItem('ti_leads');
+    return savedLeads ? JSON.parse(savedLeads) : [];
+  });
+
   const [isFetching, setIsFetching] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
+
+  // 🧠 MEMORY UPGRADE 3: Auto-save Dates and Leads to Session Storage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('ti_dates', JSON.stringify(dates));
+  }, [dates]);
+
+  useEffect(() => {
+    sessionStorage.setItem('ti_leads', JSON.stringify(leads));
+  }, [leads]);
 
   // EXTRACTION PROTOCOL (TradeIndia Endpoint)
   const handleFetch = async () => {
@@ -116,6 +135,13 @@ export default function TradeIndia() {
 
   const qualifiedCount = leads.filter(l => l.status === "✅ Qualified").length;
 
+  // 🗑️ OPTIONAL: A button to quickly clear the session storage
+  const clearSession = () => {
+    sessionStorage.removeItem('ti_leads');
+    setLeads([]);
+    setStatus({ type: 'success', message: '🧹 Temporary leads cleared from memory.' });
+  };
+
   return (
     <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
       
@@ -159,8 +185,9 @@ export default function TradeIndia() {
         </div>
 
         {status.message && (
-          <div className={`px-4 py-3 rounded-md font-mono text-sm border ${status.type === 'error' ? 'bg-red-900/50 border-red-500/50 text-red-200' : 'bg-amber-900/50 border-amber-500/50 text-amber-200'}`}>
-            {status.message}
+          <div className={`px-4 py-3 rounded-md font-mono text-sm border flex justify-between items-center ${status.type === 'error' ? 'bg-red-900/50 border-red-500/50 text-red-200' : 'bg-amber-900/50 border-amber-500/50 text-amber-200'}`}>
+            <span>{status.message}</span>
+            <button onClick={() => setStatus({type: '', message: ''})} className="text-white/50 hover:text-white">✕</button>
           </div>
         )}
 
@@ -219,6 +246,10 @@ export default function TradeIndia() {
               </span>
               
               <div className="flex gap-4">
+                <button onClick={clearSession} className="px-4 py-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 font-mono text-sm tracking-widest uppercase rounded transition-colors">
+                  Clear List
+                </button>
+
                 <button 
                   onClick={handleDownloadExcel}
                   className="px-6 py-2 border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase rounded transition-colors flex items-center gap-2"
