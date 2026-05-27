@@ -97,6 +97,11 @@ export default function Database() {
     { name: '❄️ Cold Deals', value: coldPipelineCount, color: '#06b6d4' }
   ].filter(d => d.value > 0);
 
+  const achievementPercentage =
+  targetTurnover > 0
+    ? Math.min((dealsWonValue / targetTurnover) * 100, 100)
+    : 0;
+  
   return (
     <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
@@ -220,58 +225,177 @@ export default function Database() {
               </div>
             )}
 
-            {/* ========================================== */}
-            {/* TARGET TRACKER & PAGE NAVIGATION           */}
-            {/* ========================================== */}
-            <div className="w-full flex flex-col gap-6 py-6 border-y border-white/5 bg-gradient-to-r from-transparent via-white/5 to-transparent">
+{/* ========================================== */}
+{/* TARGET TRACKER & PAGE NAVIGATION           */}
+{/* ========================================== */}
+<div className="w-full flex flex-col gap-8 py-8 border-y border-white/5 bg-gradient-to-r from-transparent via-white/5 to-transparent">
 
-              <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-                <div className="bg-black/20 border border-green-500/30 px-6 py-3 rounded-lg flex items-center gap-4 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
-                  <span className="text-secondary text-xs font-mono uppercase tracking-widest">✅ Total Revenue Won</span>
-                  <span className="text-green-400 font-bold text-2xl">₹{dealsWonValue.toLocaleString('en-IN')}</span>
-                </div>
+  {/* ===== TARGET PROGRESS CARD ===== */}
+  <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-cyan-500/5 to-blue-500/10 p-8 shadow-[0_0_40px_rgba(16,185,129,0.12)]">
 
-                <div className="text-white/20 font-bold text-2xl hidden md:block">/</div>
+    {/* Glow Effects */}
+    <div className="absolute -top-20 -right-20 w-72 h-72 bg-emerald-400/10 rounded-full blur-[100px]"></div>
+    <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-cyan-400/10 rounded-full blur-[100px]"></div>
 
-                <div className="bg-black/20 border border-blue-500/30 px-6 py-3 rounded-lg flex items-center gap-4 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                  <span className="text-secondary text-xs font-mono uppercase tracking-widest">🎯 Target Turnover</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-blue-300 font-bold text-2xl">₹</span>
-                    <input
-                      type="number"
-                      defaultValue={targetTurnover}
-                      onBlur={handleTargetBlur}
-                      className="bg-navy border border-blue-500/50 px-3 py-1 rounded text-blue-300 font-bold text-2xl w-56 focus:outline-none focus:border-blue-400 text-center transition-colors hover:bg-white/5"
-                    />
-                  </div>
-                </div>
-              </div>
+    <div className="relative z-10 flex flex-col gap-8">
 
-              <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-                <button
-                  onClick={() => navigate('/analytics')}
-                  className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] group w-full md:w-auto justify-center"
-                >
-                  <svg className="w-5 h-5 text-blue-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Detailed Analytics
-                </button>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-                <button
-                  onClick={() => navigate('/leadmanager')}
-                  className="bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] group w-full md:w-auto justify-center"
-                >
-                  <svg className="w-5 h-5 text-purple-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  Lead Manager
-                </button>
-              </div>
+        <div>
+          <p className="text-emerald-400 font-mono text-xs tracking-[0.3em] uppercase mb-2">
+            Revenue Target Progress
+          </p>
+
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+            {achievementPercentage.toFixed(1)}%
+          </h2>
+
+          <p className="text-slate-400 mt-2 text-sm">
+            Goal accomplishment status
+          </p>
+        </div>
+
+        {/* Circular Percentage */}
+        <div className="relative w-36 h-36 flex items-center justify-center">
+
+          <svg className="absolute inset-0 w-full h-full -rotate-90">
+            <circle
+              cx="72"
+              cy="72"
+              r="58"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="10"
+              fill="transparent"
+            />
+
+            <circle
+              cx="72"
+              cy="72"
+              r="58"
+              stroke="url(#grad)"
+              strokeWidth="10"
+              fill="transparent"
+              strokeLinecap="round"
+              strokeDasharray={364.4}
+              strokeDashoffset={
+                364.4 - (364.4 * achievementPercentage) / 100
+              }
+              style={{
+                transition: 'stroke-dashoffset 1s ease'
+              }}
+            />
+
+            <defs>
+              <linearGradient id="grad">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="50%" stopColor="#06b6d4" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          <div className="text-center">
+            <div className="text-3xl font-black text-white">
+              {achievementPercentage.toFixed(0)}%
             </div>
-          </>
-        )}
+            <div className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
+              Achieved
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="flex flex-col gap-3">
+
+        <div className="flex justify-between text-xs font-mono uppercase tracking-wider">
+          <span className="text-slate-400">
+            Progress
+          </span>
+
+          <span className="text-emerald-400">
+            ₹{dealsWonValue.toLocaleString('en-IN')} / ₹{Number(targetTurnover).toLocaleString('en-IN')}
+          </span>
+        </div>
+
+        <div className="h-5 w-full rounded-full bg-black/30 overflow-hidden border border-white/10">
+
+          <div
+            className="h-full rounded-full relative overflow-hidden"
+            style={{
+              width: `${Math.min(achievementPercentage, 100)}%`,
+              transition: 'width 1s ease',
+              background:
+                'linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)'
+            }}
+          >
+
+            {/* Shine Animation */}
+            <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.35),transparent)] animate-[shine_2s_linear_infinite]"></div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue + Target */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* Revenue */}
+        <div className="bg-black/20 border border-green-500/20 rounded-xl p-5 backdrop-blur-sm">
+          <div className="text-secondary text-xs font-mono uppercase tracking-widest mb-2">
+            ✅ Total Revenue Won
+          </div>
+
+          <div className="text-3xl font-black text-green-400">
+            ₹{dealsWonValue.toLocaleString('en-IN')}
+          </div>
+        </div>
+
+        {/* Target */}
+        <div className="bg-black/20 border border-blue-500/20 rounded-xl p-5 backdrop-blur-sm">
+          <div className="text-secondary text-xs font-mono uppercase tracking-widest mb-2">
+            🎯 Target Turnover
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-blue-300 text-3xl font-black">₹</span>
+
+            <input
+              type="number"
+              defaultValue={targetTurnover}
+              onBlur={handleTargetBlur}
+              className="bg-navy border border-blue-500/40 px-4 py-2 rounded-lg text-blue-300 font-black text-2xl w-full focus:outline-none focus:border-cyan-400 transition-all"
+            />
+          </div>
+        </div>
+
       </div>
     </div>
-  );
-}
+  </div>
+
+  {/* NAV BUTTONS */}
+  <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+
+    <button
+      onClick={() => navigate('/analytics')}
+      className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] group w-full md:w-auto justify-center"
+    >
+      <svg className="w-5 h-5 text-blue-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+      Detailed Analytics
+    </button>
+
+    <button
+      onClick={() => navigate('/leadmanager')}
+      className="bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] group w-full md:w-auto justify-center"
+    >
+      <svg className="w-5 h-5 text-purple-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      Lead Manager
+    </button>
+
+  </div>
+</div>
