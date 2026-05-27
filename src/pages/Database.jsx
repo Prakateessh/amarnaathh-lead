@@ -449,7 +449,7 @@ export default function Database() {
                   type="number" 
                   defaultValue={targetTurnover}
                   onBlur={handleTargetBlur}
-                  className="bg-navy border border-blue-500/50 px-3 py-1 rounded text-blue-300 font-bold text-2xl w-40 focus:outline-none focus:border-blue-400 text-center transition-colors hover:bg-white/5"
+                  className="bg-navy border border-blue-500/50 px-3 py-1 rounded text-blue-300 font-bold text-2xl w-56 focus:outline-none focus:border-blue-400 text-center transition-colors hover:bg-white/5"
                 />
               </div>
             </div>
