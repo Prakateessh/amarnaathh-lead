@@ -21,11 +21,16 @@ export default function Database() {
   const [isAppending, setIsAppending] = useState(false);
   const [lostModal, setLostModal] = useState({ isOpen: false, leadId: null });
   
-  const [noteUser, setNoteUser] = useState("User 1");
-  const users = ["User 1", "User 2", "User 3", "User 4"];
+  // 📝 UPDATED: User Dropdown Names
+  const [noteUser, setNoteUser] = useState("Ritthik Kumar");
+  const users = [
+    "Ritthik Kumar", 
+    "Soundararajan B", 
+    "Business Management Executive (BME)"
+  ];
 
-  // === TARGET TRACKER STATE ===
-  const [targetDeals, setTargetDeals] = useState(50); // Default to 50, fetched from DB on load
+  // 🎯 UPDATED: TARGET TRACKER STATE (Turnover instead of Count)
+  const [targetTurnover, setTargetTurnover] = useState(5000000); // Default to 50 Lakhs
 
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
   const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
@@ -37,9 +42,9 @@ export default function Database() {
   const fetchDatabaseData = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch Target from Settings Table
+      // 1. Fetch Target Turnover from Settings Table
       const { data: settingsData } = await supabase.from('settings').select('value').eq('key', 'yearly_target').single();
-      if (settingsData) setTargetDeals(Number(settingsData.value));
+      if (settingsData) setTargetTurnover(Number(settingsData.value));
 
       // 2. Fetch Leads
       const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -61,7 +66,7 @@ export default function Database() {
     }
   };
 
-  // ⚡ AUTO-SAVE: INLINE CELL EDITING (Triggers onBlur or onChange)
+  // ⚡ AUTO-SAVE: INLINE CELL EDITING
   const handleCellEdit = async (id, field, value) => {
     if (field === 'status' && value === 'Closed - Lost') {
       setLostModal({ isOpen: true, leadId: id });
@@ -103,10 +108,10 @@ export default function Database() {
     }
   };
 
-  // ⚡ AUTO-SAVE: TARGET DEALS TO DATABASE
+  // ⚡ AUTO-SAVE: TARGET TURNOVER TO DATABASE
   const handleTargetBlur = async (e) => {
     const val = e.target.value;
-    setTargetDeals(val);
+    setTargetTurnover(val);
     try {
       await supabase.from('settings').upsert({ key: 'yearly_target', value: val });
     } catch (err) {
@@ -132,7 +137,6 @@ export default function Database() {
       const { error } = await supabase.from('leads').delete().in('id', selectedLeads);
       if (error) throw error;
       
-      // Update UI
       setLeads(prev => prev.filter(l => !selectedLeads.includes(l.id)));
       setSelectedLeads([]);
     } catch (error) {
@@ -208,7 +212,10 @@ export default function Database() {
   // ==========================================
 
   const activeLeads = leads.filter(l => l.status !== 'Closed - Lost');
-  const dealsWonCount = leads.filter(l => l.status === 'Closed - Won').length;
+  
+  // 💰 UPDATED: Calculate Total Revenue of "Closed - Won" deals instead of just count
+  const dealsWonValue = leads.filter(l => l.status === 'Closed - Won').reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
+  
   const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
 
   const hotPipelineValue = activeLeads.filter(l => l.lead_temp === 'Hot').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
@@ -256,10 +263,11 @@ export default function Database() {
             />
             
             <div className="flex gap-4">
+              {/* UPDATED: Dynamic width for larger names */}
               <select 
                 value={noteUser} 
                 onChange={(e) => setNoteUser(e.target.value)}
-                className="bg-navy border border-white/20 px-4 py-3 rounded text-white font-mono text-sm focus:outline-none focus:border-primary w-40 transition-colors"
+                className="bg-navy border border-white/20 px-4 py-3 rounded text-white font-mono text-sm focus:outline-none focus:border-primary max-w-xs truncate transition-colors"
               >
                 {users.map(u => <option key={u} value={u} className="bg-slate-900 text-white">{u}</option>)}
               </select>
@@ -425,20 +433,25 @@ export default function Database() {
           
           <div className="flex flex-col md:flex-row justify-center items-center gap-6">
             <div className="bg-black/20 border border-green-500/30 px-6 py-3 rounded-lg flex items-center gap-4 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
-              <span className="text-secondary text-xs font-mono uppercase tracking-widest">✅ Total Deals Won</span>
-              <span className="text-green-400 font-bold text-2xl">{dealsWonCount}</span>
+              <span className="text-secondary text-xs font-mono uppercase tracking-widest">✅ Total Revenue Won</span>
+              {/* UPDATED: Displays formatted currency sum of won deals */}
+              <span className="text-green-400 font-bold text-2xl">₹{dealsWonValue.toLocaleString('en-IN')}</span>
             </div>
             
             <div className="text-white/20 font-bold text-2xl hidden md:block">/</div>
 
             <div className="bg-black/20 border border-blue-500/30 px-6 py-3 rounded-lg flex items-center gap-4 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-              <span className="text-secondary text-xs font-mono uppercase tracking-widest">🎯 Yearly Target</span>
-              <input 
-                type="number" 
-                defaultValue={targetDeals}
-                onBlur={handleTargetBlur}
-                className="bg-navy border border-blue-500/50 px-3 py-1 rounded text-blue-300 font-bold text-2xl w-24 focus:outline-none focus:border-blue-400 text-center text-center transition-colors hover:bg-white/5"
-              />
+              <span className="text-secondary text-xs font-mono uppercase tracking-widest">🎯 Target Turnover</span>
+              <div className="flex items-center gap-1">
+                <span className="text-blue-300 font-bold text-2xl">₹</span>
+                {/* UPDATED: Much wider input to handle large monetary values */}
+                <input 
+                  type="number" 
+                  defaultValue={targetTurnover}
+                  onBlur={handleTargetBlur}
+                  className="bg-navy border border-blue-500/50 px-3 py-1 rounded text-blue-300 font-bold text-2xl w-40 focus:outline-none focus:border-blue-400 text-center transition-colors hover:bg-white/5"
+                />
+              </div>
             </div>
           </div>
 
@@ -470,7 +483,6 @@ export default function Database() {
         {/* ========================================== */}
         <div className="overflow-x-auto relative">
           
-          {/* BULK DELETE ACTION BAR */}
           {selectedLeads.length > 0 && (
             <div className="absolute top-0 left-0 w-full bg-red-900/90 backdrop-blur border-b border-red-500/50 p-3 flex justify-between items-center z-20 shadow-xl rounded-t">
               <span className="text-red-200 font-mono text-sm tracking-widest uppercase ml-4">
@@ -511,7 +523,6 @@ export default function Database() {
                 {leads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-white/5 transition-colors group">
                     
-                    {/* CHECKBOX */}
                     <td className="py-4 px-4">
                       <input 
                         type="checkbox" 
@@ -521,7 +532,6 @@ export default function Database() {
                       />
                     </td>
 
-                    {/* EDITABLE DATE & SOURCE */}
                     <td className="py-4 px-2">
                       <div className="flex flex-col gap-1 w-32">
                         <input 
@@ -553,7 +563,6 @@ export default function Database() {
                       </div>
                     </td>
 
-                    {/* EDITABLE CLIENT INFO */}
                     <td className="py-4 px-2">
                       <div className="flex flex-col gap-1 w-48">
                         <input 
@@ -582,7 +591,6 @@ export default function Database() {
                       </div>
                     </td>
                     
-                    {/* EDITABLE REQUIREMENT & NOTES */}
                     <td className="py-4 px-2">
                       <div className="flex flex-col items-start gap-2 w-64">
                         <textarea 
@@ -600,7 +608,6 @@ export default function Database() {
                       </div>
                     </td>
                     
-                    {/* PIPELINE STAGE */}
                     <td className="py-4 px-2 text-center">
                       <div className="flex flex-col gap-1 items-center">
                         <select 
@@ -625,7 +632,6 @@ export default function Database() {
                       </div>
                     </td>
 
-                    {/* TEMPERATURE */}
                     <td className="py-4 px-2 text-center">
                       <select 
                         value={lead.lead_temp || 'Cold'} 
@@ -642,7 +648,6 @@ export default function Database() {
                       </select>
                     </td>
 
-                    {/* VALUE */}
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <span className="text-green-500 font-mono text-sm">₹</span>
