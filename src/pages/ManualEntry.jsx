@@ -211,6 +211,7 @@ export default function ManualEntry() {
                 <option value="LinkedIn">💼 LinkedIn</option>
                 <option value="Direct">📞 Direct Call / Walk-in</option>
                 <option value="Direct">🤝 Referral</option>
+                <option value="Website">🛒 Alibaba.com</option>
               </select>
             </div>
 
