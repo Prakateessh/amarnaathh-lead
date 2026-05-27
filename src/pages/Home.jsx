@@ -35,7 +35,7 @@ export default function Home() {
       ),
     },
     {
-      name: 'Wix',
+      name: 'Website',
       path: '/wix',
       icon: (
         <img 
