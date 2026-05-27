@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 // 1. Import your local assets here
 import indiamartLogo from '../assets/icons/indiamart.png';
 import tradeindiaLogo from '../assets/icons/tradeindia.png';
-import wixLogo from '../assets/icons/amarnaathh.png';
-import alibabaLogo from '../assets/icons/alibaba.png';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -30,28 +28,6 @@ export default function Home() {
         <img 
           src={tradeindiaLogo} 
           alt="TradeIndia Logo" 
-          className="w-10 h-10 object-contain rounded-md shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-        />
-      ),
-    },
-    {
-      name: 'Website',
-      path: '/wix',
-      icon: (
-        <img 
-          src={wixLogo} 
-          alt="Wix Logo" 
-          className="w-10 h-10 object-contain rounded-md shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-        />
-      ),
-    },
-    {
-      name: 'Alibaba',
-      path: '/alibaba',
-      icon: (
-        <img 
-          src={alibabaLogo} 
-          alt="Alibaba Logo" 
           className="w-10 h-10 object-contain rounded-md shadow-[0_0_10px_rgba(255,255,255,0.1)]"
         />
       ),
