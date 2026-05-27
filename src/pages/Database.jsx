@@ -21,8 +21,8 @@ export default function Database() {
   const [lostModal, setLostModal] = useState({ isOpen: false, leadId: null });
   
   // NEW: User Note Selection
-  const [noteUser, setNoteUser] = useState("User 1");
-  const users = ["User 1", "User 2", "User 3", "User 4"];
+  const [noteUser, setNoteUser] = useState("Ritthik Kumar");
+  const users = ["Ritthik Kumar", "Soundararajan B", "BDE"];
 
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
   const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
