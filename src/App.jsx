@@ -4,9 +4,7 @@ import Home from './pages/Home';
 import ManualEntry from './pages/ManualEntry';
 import Database from './pages/Database';
 import IndiaMart from './pages/IndiaMart';
-import TradeIndia from './pages/TradeIndia';
-import Wix from './pages/Wix';          
-import Alibaba from './pages/Alibaba';  
+import TradeIndia from './pages/TradeIndia'; 
 import DetailedAnalytics from './pages/DetailedAnalytics';
 
 // 🛑 THE GATEKEEPER
@@ -34,8 +32,6 @@ function App() {
         <Route path="/database" element={<ProtectedRoute><Database /></ProtectedRoute>} />
         <Route path="/indiamart" element={<ProtectedRoute><IndiaMart /></ProtectedRoute>} />
         <Route path="/tradeindia" element={<ProtectedRoute><TradeIndia /></ProtectedRoute>} />
-        <Route path="/wix" element={<ProtectedRoute><Wix /></ProtectedRoute>} />          
-        <Route path="/alibaba" element={<ProtectedRoute><Alibaba /></ProtectedRoute>} /> 
         <Route path="/analytics" element={<ProtectedRoute><DetailedAnalytics /></ProtectedRoute>} />
 
         {/* Catch-all route: Send unknown URLs back to login */}
