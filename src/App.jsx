@@ -7,6 +7,7 @@ import IndiaMart from './pages/IndiaMart';
 import TradeIndia from './pages/TradeIndia';
 import Wix from './pages/Wix';          
 import Alibaba from './pages/Alibaba';  
+import DetailedAnalytics from './pages/DetailedAnalytics';
 
 // 🛑 THE GATEKEEPER
 // Checks if the browser has the login key. If not, kicks them to Login.
