@@ -210,6 +210,7 @@ export default function ManualEntry() {
                 <option value="YouTube">📺 YouTube</option>
                 <option value="LinkedIn">💼 LinkedIn</option>
                 <option value="Direct">📞 Direct Call / Walk-in</option>
+                <option value="Direct">🤝 Referral</option>
               </select>
             </div>
 
