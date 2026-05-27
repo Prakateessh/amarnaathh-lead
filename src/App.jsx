@@ -35,7 +35,8 @@ function App() {
         <Route path="/indiamart" element={<ProtectedRoute><IndiaMart /></ProtectedRoute>} />
         <Route path="/tradeindia" element={<ProtectedRoute><TradeIndia /></ProtectedRoute>} />
         <Route path="/wix" element={<ProtectedRoute><Wix /></ProtectedRoute>} />          
-        <Route path="/alibaba" element={<ProtectedRoute><Alibaba /></ProtectedRoute>} />  
+        <Route path="/alibaba" element={<ProtectedRoute><Alibaba /></ProtectedRoute>} /> 
+        <Route path="/analytics" element={<ProtectedRoute><DetailedAnalytics /></ProtectedRoute>} />
 
         {/* Catch-all route: Send unknown URLs back to login */}
         <Route path="*" element={<Navigate to="/" replace />} />
