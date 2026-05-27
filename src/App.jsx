@@ -6,6 +6,7 @@ import Database from './pages/Database';
 import IndiaMart from './pages/IndiaMart';
 import TradeIndia from './pages/TradeIndia'; 
 import DetailedAnalytics from './pages/DetailedAnalytics';
+import LeadManager from './pages/LeadManager';
 
 // 🛑 THE GATEKEEPER
 // Checks if the browser has the login key. If not, kicks them to Login.
@@ -30,6 +31,7 @@ function App() {
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/manual" element={<ProtectedRoute><ManualEntry /></ProtectedRoute>} />
         <Route path="/database" element={<ProtectedRoute><Database /></ProtectedRoute>} />
+        <Route path="/leadmanager" element={<ProtectedRoute><LeadManager /></ProtectedRoute>} />
         <Route path="/indiamart" element={<ProtectedRoute><IndiaMart /></ProtectedRoute>} />
         <Route path="/tradeindia" element={<ProtectedRoute><TradeIndia /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><DetailedAnalytics /></ProtectedRoute>} />
