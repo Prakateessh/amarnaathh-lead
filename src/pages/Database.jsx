@@ -30,7 +30,7 @@ export default function Database() {
   ];
 
   // 🎯 UPDATED: TARGET TRACKER STATE (Turnover instead of Count)
-  const [targetTurnover, setTargetTurnover] = useState(5000000); // Default to 50 Lakhs
+  const [targetTurnover, setTargetTurnover] = useState(150000000); // Default to 50 Lakhs
 
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
   const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
