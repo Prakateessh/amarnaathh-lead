@@ -11,10 +11,10 @@ export default function PlaceholderPage() {
         <p className="text-secondary mb-8">This portal integration is currently being wired up.</p>
         
         <button 
-          onClick={() => navigate('/home')}
+          onClick={() => navigate('/database')}
           className="w-full bg-white/10 hover:bg-white/20 text-white font-mono py-3 rounded transition-colors"
         >
-          ← BACK TO HOME
+          ← BACK TO DASHBOARD
         </button>
       </div>
     </div>
