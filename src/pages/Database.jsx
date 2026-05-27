@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import * as XLSX from 'xlsx';
 
 export default function Database() {
@@ -161,11 +161,9 @@ export default function Database() {
   // 📊 DATA ANALYTICS & GRAPH CALCULATIONS
   // ==========================================
 
-  // 1. KPI Bar Stats
   const activeLeads = leads.filter(l => l.status !== 'Closed - Lost');
   const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
 
-  // New Temperature Breakdown Logic
   const hotPipelineValue = activeLeads.filter(l => l.lead_temp === 'Hot').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   const hotPipelineCount = activeLeads.filter(l => l.lead_temp === 'Hot').length;
   
@@ -175,45 +173,12 @@ export default function Database() {
   const coldPipelineValue = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   const coldPipelineCount = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length;
 
-  // 2. Temperature Pie Data
+  // Pie Data formatted for the new Full-Width chart
   const pieData = [
-    { name: 'Hot', value: hotPipelineCount, color: '#ef4444' },
-    { name: 'Warm', value: warmPipelineCount, color: '#f59e0b' },
-    { name: 'Cold', value: coldPipelineCount, color: '#06b6d4' }
+    { name: '🔥 Hot Deals', value: hotPipelineCount, color: '#ef4444' },
+    { name: '🌡️ Warm Deals', value: warmPipelineCount, color: '#f59e0b' },
+    { name: '❄️ Cold Deals', value: coldPipelineCount, color: '#06b6d4' }
   ].filter(d => d.value > 0);
-
-  // 3. The Sales Funnel (Vertical Bar Chart)
-  const funnelStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
-  const funnelData = funnelStages.map(stage => ({
-    name: stage,
-    count: leads.filter(l => (l.status || 'New') === stage).length
-  }));
-
-  // 4. Lost Reason Breakdown (Donut Chart)
-  const lostLeads = leads.filter(l => l.status === 'Closed - Lost' && l.lost_reason);
-  const lostReasonCounts = lostLeads.reduce((acc, lead) => {
-    acc[lead.lost_reason] = (acc[lead.lost_reason] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const COLORS = ['#ef4444', '#f97316', '#eab308', '#8b5cf6', '#ec4899', '#64748b'];
-  const lostReasonData = Object.keys(lostReasonCounts).map((key, index) => ({
-    name: key.replace(/^[^\s]+\s/, ''),
-    value: lostReasonCounts[key],
-    color: COLORS[index % COLORS.length]
-  }));
-
-  // 5. Lead Quality by Source (Stacked Bar Chart)
-  const sources = [...new Set(leads.map(l => l.source || 'Unknown'))];
-  const sourceQualityData = sources.map(source => {
-    const sourceLeads = leads.filter(l => (l.source || 'Unknown') === source);
-    return {
-      name: source,
-      Won: sourceLeads.filter(l => l.status === 'Closed - Won').length,
-      Active: sourceLeads.filter(l => l.status !== 'Closed - Won' && l.status !== 'Closed - Lost').length,
-      Lost: sourceLeads.filter(l => l.status === 'Closed - Lost').length,
-    };
-  });
 
   return (
     <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
@@ -372,80 +337,65 @@ export default function Database() {
         </div>
 
         {/* ========================================== */}
-        {/* GRAPH ROW 1: THE FUNNEL & LOST REASONS     */}
+        {/* FULL WIDTH TEMPERATURE DONUT CHART         */}
         {/* ========================================== */}
-        {leads.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-2">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">The Sales Funnel (Active/Won)</span>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} width={100} />
-                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {leads.length > 0 && pieData.length > 0 && (
+          <div className="w-full bg-white/5 border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center h-[420px] mb-2 relative overflow-hidden shadow-2xl">
+            {/* Background ambient glow behind the chart */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-white/5 rounded-full blur-[80px] pointer-events-none"></div>
 
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lost Reason Breakdown</span>
-              <ResponsiveContainer width="100%" height="100%">
-                {lostReasonData.length > 0 ? (
-                  <PieChart>
-                    <Pie data={lostReasonData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {lostReasonData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}/>
-                  </PieChart>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-secondary font-mono text-xs">No lost deals yet.</div>
-                )}
-              </ResponsiveContainer>
-            </div>
+            <span className="text-secondary font-mono text-sm uppercase tracking-widest mb-4 z-10">
+              Active Lead Temperature Distribution
+            </span>
+            
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={pieData} 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius={110} 
+                  outerRadius={150} 
+                  paddingAngle={6} 
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.color} 
+                      style={{ filter: `drop-shadow(0px 0px 10px ${entry.color}80)` }} // Glowing CSS shadow
+                    />
+                  ))}
+                </Pie>
+
+                {/* Central Labels inside the Donut */}
+                <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" className="fill-white text-5xl font-bold tracking-tighter">
+                  {activeLeads.length}
+                </text>
+                <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" className="fill-secondary text-xs font-mono tracking-widest">
+                  ACTIVE DEALS
+                </text>
+
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} 
+                  itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36} 
+                  iconType="circle" 
+                  wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         )}
 
         {/* ========================================== */}
-        {/* GRAPH ROW 2: SOURCES & TEMPERATURE         */}
+        {/* 🚀 DETAILED ANALYTICS NAVIGATION           */}
         {/* ========================================== */}
-        {leads.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-72 mb-8">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Lead Quality by Source</span>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sourceQualityData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis hide />
-                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="Won" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="Active" stackId="a" fill="#3b82f6" />
-                  <Bar dataKey="Lost" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col">
-              <span className="text-secondary font-mono text-xs uppercase tracking-wider mb-2 text-center">Active Lead Temperature</span>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={0} outerRadius={80} dataKey="value">
-                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }} />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================== */}
-        {/* 🚀 NEW: DETAILED ANALYTICS NAVIGATION      */}
-        {/* ========================================== */}
-        <div className="w-full flex justify-center items-center py-8 mb-8 border-y border-white/5 bg-gradient-to-r from-transparent via-blue-900/10 to-transparent">
+        <div className="w-full flex justify-center items-center py-6 mb-4 border-y border-white/5 bg-gradient-to-r from-transparent via-blue-900/10 to-transparent">
           <button 
             onClick={() => navigate('/analytics')}
             className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] group"
