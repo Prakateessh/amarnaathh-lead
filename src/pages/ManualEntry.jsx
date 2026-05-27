@@ -196,8 +196,7 @@ export default function ManualEntry() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* NEW: SOURCE DROPDOWN */}
+
             <div className="flex flex-col gap-2 md:col-span-2">
               <label className="font-mono text-xs text-secondary tracking-widest uppercase">Lead Source</label>
               <select 
@@ -206,12 +205,13 @@ export default function ManualEntry() {
                 onChange={handleChange}
                 className="bg-black/30 border-b border-white/20 px-4 py-3 text-white font-mono focus:outline-none focus:border-primary focus:bg-white/10 transition-all w-full"
               >
-                <option value="Website">🌐 Website Inquiry</option>
-                <option value="YouTube">📺 YouTube</option>
-                <option value="LinkedIn">💼 LinkedIn</option>
-                <option value="Direct">📞 Direct Call / Walk-in</option>
-                <option value="Direct">🤝 Referral</option>
-                <option value="Website">🛒 Alibaba.com</option>
+                {/* 🛠️ ADDED SOLID DARK BACKGROUNDS TO OPTIONS HERE */}
+                <option className="bg-slate-900 text-white" value="Website">🌐 Website Inquiry</option>
+                <option className="bg-slate-900 text-white" value="YouTube">📺 YouTube</option>
+                <option className="bg-slate-900 text-white" value="LinkedIn">💼 LinkedIn</option>
+                <option className="bg-slate-900 text-white" value="Direct">📞 Direct Call / Walk-in</option>
+                <option className="bg-slate-900 text-white" value="Referral">🤝 Referral</option>
+                <option className="bg-slate-900 text-white" value="Alibaba">🛒 Alibaba.com</option>
               </select>
             </div>
 
