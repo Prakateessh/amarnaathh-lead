@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 // 1. Import your local assets here
 import indiamartLogo from '../assets/icons/indiamart.png';
 import tradeindiaLogo from '../assets/icons/tradeindia.png';
-import wixLogo from '../assets/icons/wix.png';
+import wixLogo from '../assets/icons/amarnaathh.png';
 import alibabaLogo from '../assets/icons/alibaba.png';
 
 export default function Home() {
