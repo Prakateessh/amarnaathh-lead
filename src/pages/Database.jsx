@@ -13,9 +13,6 @@ export default function Database() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isWiping, setIsWiping] = useState(false);
-  
-  // Custom Hot Pipeline Reveal State
-  const [showHotPipeline, setShowHotPipeline] = useState(false);
 
   // === MODAL STATES ===
   const [activeLead, setActiveLead] = useState(null);
@@ -165,17 +162,24 @@ export default function Database() {
   // ==========================================
 
   // 1. KPI Bar Stats
-  const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
   const activeLeads = leads.filter(l => l.status !== 'Closed - Lost');
+  const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
 
+  // New Temperature Breakdown Logic
   const hotPipelineValue = activeLeads.filter(l => l.lead_temp === 'Hot').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
   const hotPipelineCount = activeLeads.filter(l => l.lead_temp === 'Hot').length;
   
+  const warmPipelineValue = activeLeads.filter(l => l.lead_temp === 'Warm').reduce((sum, l) => sum + (Number(l.price) || 0), 0);
+  const warmPipelineCount = activeLeads.filter(l => l.lead_temp === 'Warm').length;
+  
+  const coldPipelineValue = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).reduce((sum, l) => sum + (Number(l.price) || 0), 0);
+  const coldPipelineCount = activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length;
+
   // 2. Temperature Pie Data
   const pieData = [
-    { name: 'Hot', value: activeLeads.filter(l => l.lead_temp === 'Hot').length, color: '#ef4444' },
-    { name: 'Warm', value: activeLeads.filter(l => l.lead_temp === 'Warm').length, color: '#f59e0b' },
-    { name: 'Cold', value: activeLeads.filter(l => l.lead_temp === 'Cold' || !l.lead_temp).length, color: '#06b6d4' }
+    { name: 'Hot', value: hotPipelineCount, color: '#ef4444' },
+    { name: 'Warm', value: warmPipelineCount, color: '#f59e0b' },
+    { name: 'Cold', value: coldPipelineCount, color: '#06b6d4' }
   ].filter(d => d.value > 0);
 
   // 3. The Sales Funnel (Vertical Bar Chart)
@@ -332,44 +336,37 @@ export default function Database() {
             <div className="text-3xl font-bold text-white">₹{totalValue.toLocaleString('en-IN')}</div>
           </div>
 
-          {/* CUSTOM HOT PIPELINE REVEAL CARD */}
-          <div 
-            className="bg-red-900/20 border border-red-500/30 rounded-lg p-5 relative overflow-hidden cursor-pointer transition-colors hover:bg-red-900/30 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]"
-            onClick={() => setShowHotPipeline(v => !v)}
-            title="Click to reveal / hide Hot Pipeline value"
-          >
-            {/* Fire shimmer strip */}
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-5 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60"></div>
-            
-            <div className="flex justify-between items-start">
-              <p className="text-orange-400 font-mono text-xs uppercase tracking-wider mb-2">🔥 Hot Pipeline</p>
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-orange-400 font-mono text-xs uppercase tracking-wider">🔥 Hot Pipeline</p>
               <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">{hotPipelineCount} leads</span>
             </div>
-
-            {showHotPipeline ? (
-              <p className="text-3xl font-bold text-red-300 tracking-tight animate-fade-in">
-                ₹{hotPipelineValue.toLocaleString('en-IN')}
-              </p>
-            ) : (
-              <div className="flex items-center gap-3">
-                <p className="text-2xl font-bold text-slate-600 tracking-widest blur-[4px] select-none">
-                  ₹——————
-                </p>
-                <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase">
-                  tap to reveal
-                </span>
-              </div>
-            )}
+            <p className="text-3xl font-bold text-red-300 tracking-tight">
+              ₹{hotPipelineValue.toLocaleString('en-IN')}
+            </p>
           </div>
 
-          <div className="bg-green-900/20 border border-green-500/20 rounded-lg p-5">
-            <div className="text-green-400 font-mono text-xs uppercase tracking-wider mb-2">✅ Closed Won</div>
-            <div className="text-3xl font-bold text-white">{leads.filter(l => l.status === 'Closed - Won').length} Deals</div>
+          <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-5 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-60"></div>
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-amber-400 font-mono text-xs uppercase tracking-wider">🌡️ Warm Pipeline</p>
+              <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">{warmPipelineCount} leads</span>
+            </div>
+            <p className="text-3xl font-bold text-amber-300 tracking-tight">
+              ₹{warmPipelineValue.toLocaleString('en-IN')}
+            </p>
           </div>
 
-          <div className="bg-blue-900/20 border border-blue-500/20 rounded-lg p-5">
-            <div className="text-blue-400 font-mono text-xs uppercase tracking-wider mb-2">💼 Active Leads</div>
-            <div className="text-3xl font-bold text-white">{activeLeads.length}</div>
+          <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-5 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-60"></div>
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-cyan-400 font-mono text-xs uppercase tracking-wider">❄️ Cold Pipeline</p>
+              <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">{coldPipelineCount} leads</span>
+            </div>
+            <p className="text-3xl font-bold text-cyan-300 tracking-tight">
+              ₹{coldPipelineValue.toLocaleString('en-IN')}
+            </p>
           </div>
 
         </div>
@@ -459,7 +456,6 @@ export default function Database() {
             Open Detailed Analytics Portal
           </button>
         </div>
-        {/* 👆 END OF NEW BLOCK 👆 */}
 
         {/* ========================================== */}
         {/* DATA GRID WITH NEW PIPELINE DROPDOWN       */}
@@ -484,7 +480,12 @@ export default function Database() {
                   <tr key={lead.id} className="hover:bg-white/5 transition-colors group">
                     <td className="py-4 px-4 whitespace-nowrap">
                       <span className="text-white font-mono text-sm">{lead.date}</span>
-                      <div className={`mt-1 text-[9px] font-mono uppercase tracking-widest inline-block px-1 rounded border ${lead.source === 'IndiaMart' ? 'text-blue-400 border-blue-500/30' : lead.source === 'TradeIndia' ? 'text-amber-400 border-amber-500/30' : 'text-secondary border-white/20'}`}>
+                      <div className={`mt-1 text-[9px] font-mono uppercase tracking-widest inline-block px-1 rounded border ${
+                        lead.source === 'IndiaMart' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10' : 
+                        lead.source === 'TradeIndia' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' : 
+                        lead.source === 'Alibaba' ? 'text-orange-400 border-orange-500/30 bg-orange-500/10' :
+                        'text-secondary border-white/20'
+                      }`}>
                         {lead.source}
                       </div>
                     </td>
@@ -516,7 +517,7 @@ export default function Database() {
                           }`}
                         >
                           {pipelineStages.map(stage => (
-                            <option key={stage} value={stage}>{stage}</option>
+                            <option className="bg-slate-900 text-white" key={stage} value={stage}>{stage}</option>
                           ))}
                         </select>
                         {lead.status === 'Closed - Lost' && lead.lost_reason && (
@@ -537,9 +538,9 @@ export default function Database() {
                           'border-cyan-500/50 text-cyan-400'
                         }`}
                       >
-                        <option value="Cold">❄️ Cold</option>
-                        <option value="Warm">🌡️ Warm</option>
-                        <option value="Hot">🔥 Hot</option>
+                        <option className="bg-slate-900 text-white" value="Cold">❄️ Cold</option>
+                        <option className="bg-slate-900 text-white" value="Warm">🌡️ Warm</option>
+                        <option className="bg-slate-900 text-white" value="Hot">🔥 Hot</option>
                       </select>
                     </td>
 
