@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 
-// ── NOTE UTILITIES ─────────────────────────────────────────────────────────────
+// ── NOTE UTILITIES & SAFEGURADS ─────────────────────────────────────────────
 const parseNoteLines = (notesStr) => notesStr?.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
 
 const parseNoteEntry = (line) => {
@@ -22,7 +22,9 @@ const getLatestNoteTimestamp = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return 0;
   const { timestamp } = parseNoteEntry(lines[lines.length - 1]);
-  return timestamp ? new Date(timestamp).getTime() : 0;
+  if (!timestamp) return 0;
+  const time = new Date(timestamp).getTime();
+  return isNaN(time) ? 0 : time;
 };
 
 // ── BADGE COMPONENTS ───────────────────────────────────────────────────────────
@@ -64,8 +66,6 @@ export default function LeadManager() {
   // === REMINDERS & CALENDAR STATE ===
   const [showReminders, setShowReminders] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
-  // Pagination State for Reminders
   const [todayPage, setTodayPage] = useState(1);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const ITEMS_PER_PAGE = 3;
@@ -135,11 +135,9 @@ export default function LeadManager() {
     }
   });
 
-  // Sort ascending (closest dates at the top)
   todayAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
   upcomingAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
 
-  // Pagination Math
   const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
   const upcomingTotalPages = Math.ceil(upcomingAlerts.length / ITEMS_PER_PAGE);
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
@@ -155,7 +153,6 @@ export default function LeadManager() {
     }
   };
 
-  // Helper for Pagination Bubbles
   const renderPagination = (currentPage, totalPages, setPage) => {
     if (totalPages <= 1) return null;
     return (
@@ -163,7 +160,7 @@ export default function LeadManager() {
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)}
             className={`w-7 h-7 rounded-md font-mono text-xs transition-colors ${
-              currentPage === p ? 'bg-primary text-white shadow-glow-primary' : 'bg-white/10 text-secondary hover:bg-white/20 hover:text-white'
+              currentPage === p ? 'bg-primary text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 text-secondary hover:bg-white/20 hover:text-white'
             }`}>
             {p}
           </button>
@@ -287,13 +284,21 @@ export default function LeadManager() {
         return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
       });
     } else {
-      // MASTER SORT LOGIC: Rank by Most Recent Activity (Note OR Creation Date)
+      // 🚀 MASTER SORT LOGIC (BULLETPROOFED)
       r.sort((a, b) => {
-        const lastActivityA = Math.max(getLatestNoteTimestamp(a.notes), new Date(a.created_at || 0).getTime());
-        const lastActivityB = Math.max(getLatestNoteTimestamp(b.notes), new Date(b.created_at || 0).getTime());
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        
+        const validTimeA = isNaN(timeA) ? 0 : timeA;
+        const validTimeB = isNaN(timeB) ? 0 : timeB;
+
+        const lastActivityA = Math.max(getLatestNoteTimestamp(a.notes), validTimeA);
+        const lastActivityB = Math.max(getLatestNoteTimestamp(b.notes), validTimeB);
+        
         return lastActivityB - lastActivityA;
       });
     }
+
     return r;
   }, [leads, filters, sortConfig]);
 
@@ -328,7 +333,7 @@ export default function LeadManager() {
   
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
-      className={`ml-1 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-primary' : 'text-white/20 hover:text-white/80'}`}>
+      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-primary' : 'text-white/20 hover:text-white/80'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -511,11 +516,11 @@ export default function LeadManager() {
                     style={{ height: '90px' }} />
                   <div className="flex gap-2 mt-3">
                     <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
-                      className="flex-1 min-w-0 bg-navy border border-white/10 rounded-lg px-2.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary truncate">
+                      className="flex-1 min-w-0 bg-navy border border-white/10 rounded-lg px-2.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary truncate cursor-pointer">
                       {users.map(u => <option key={u} value={u} className="bg-slate-900 text-white">{u}</option>)}
                     </select>
                     <button onClick={handleAppendNote} disabled={isAppending || !newNote.trim()}
-                      className="flex-shrink-0 bg-primary hover:bg-blue-500 disabled:bg-white/5 disabled:text-white/20 text-white font-mono text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors">
+                      className="flex-shrink-0 bg-primary hover:bg-blue-500 disabled:bg-white/5 disabled:text-white/20 text-white font-mono text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors shadow-lg">
                       {isAppending ? '…' : '+ Add'}
                     </button>
                   </div>
@@ -602,9 +607,7 @@ export default function LeadManager() {
               </button>
             </div>
 
-            {/* Split layout: Today vs Upcoming */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-white/10 pb-8">
-              
               {/* LEFT COLUMN: Today & Overdue */}
               <div className="flex flex-col gap-4 bg-red-500/5 border border-red-500/10 p-5 rounded-xl">
                 <h4 className="font-mono text-sm text-red-400 uppercase tracking-widest border-b border-red-500/20 pb-3 flex items-center gap-2">
@@ -692,7 +695,6 @@ export default function LeadManager() {
               </div>
             </div>
 
-            {/* Calendar View Section */}
             <div>
               <div className="flex justify-between items-center mb-5 bg-white/5 p-4 rounded-xl border border-white/10">
                 <h4 className="font-mono text-sm text-white uppercase tracking-widest">
