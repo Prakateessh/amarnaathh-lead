@@ -212,6 +212,8 @@ export default function ManualEntry() {
                 <option className="bg-slate-900 text-white" value="Direct">📞 Direct Call / Walk-in</option>
                 <option className="bg-slate-900 text-white" value="Referral">🤝 Referral</option>
                 <option className="bg-slate-900 text-white" value="Alibaba">🛒 Alibaba.com</option>
+                <option className="bg-slate-900 text-white" value="IndiaMart"> IndiaMart</option>
+                <option className="bg-slate-900 text-white" value="TradeIndia"> TradeIndia</option>
               </select>
             </div>
 
