@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 
-// ── NOTE UTILITIES & SAFEGURADS ─────────────────────────────────────────────
-const parseNoteLines = (notesStr) => notesStr?.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
+// ── BULLETPROOF NOTE UTILITIES ─────────────────────────────────────────────
+const parseNoteLines = (notesStr) => {
+  if (typeof notesStr !== 'string') return [];
+  return notesStr.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
+};
 
 const parseNoteEntry = (line) => {
+  if (typeof line !== 'string') return { timestamp: null, user: null, text: '' };
   const m = line.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] \[(.*?)\] ([\s\S]+)$/);
   return m ? { timestamp: m[1], user: m[2], text: m[3].trim() } : { timestamp: null, user: null, text: line };
 };
@@ -14,7 +18,8 @@ const parseNoteEntry = (line) => {
 const getLatestNotePreview = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return null;
-  const { text } = parseNoteEntry(lines[lines.length - 1]);
+  const parsed = parseNoteEntry(lines[lines.length - 1]);
+  const text = parsed?.text || '';
   return text.length > 70 ? text.slice(0, 70) + '…' : text;
 };
 
@@ -87,7 +92,6 @@ export default function LeadManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Notes state
   const [newNote, setNewNote] = useState('');
   const [isAppending, setIsAppending] = useState(false);
   const [noteUser, setNoteUser] = useState('Ritthik Kumar');
@@ -104,7 +108,7 @@ export default function LeadManager() {
       const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       
-      const unique = data.filter((l, i, a) =>
+      const unique = (data || []).filter((l, i, a) =>
         i === a.findIndex(t => t.name?.toLowerCase() === l.name?.toLowerCase() && t.requirement?.toLowerCase() === l.requirement?.toLowerCase())
       );
       setLeads(unique);
@@ -115,28 +119,34 @@ export default function LeadManager() {
     }
   };
 
-  // ── ALERTS & REMINDERS LOGIC ────────────────────────────────────────────────
+  // ── SAFE ALERTS LOGIC ────────────────────────────────────────────────
   const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
   let todayAlerts = [];
   let upcomingAlerts = [];
 
   leads.forEach(lead => {
     if (lead.tentative_call_date && !lead.call_attended) {
-      const isUpcoming = lead.tentative_call_date > todayStr;
+      const isUpcoming = String(lead.tentative_call_date) > todayStr;
       const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
       targetArray.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
     }
     if (lead.gmeet_date && !lead.gmeet_attended) {
-      const gDate = lead.gmeet_date.split('T')[0];
+      const gDate = String(lead.gmeet_date).split('T')[0];
       const isUpcoming = gDate > todayStr;
       const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
       targetArray.push({ ...lead, alertType: 'GMeet', alertDate: gDate });
     }
   });
 
-  todayAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
-  upcomingAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
+  todayAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
+  upcomingAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
+
+  // 🛠️ THE FIX: Combines the arrays so the Red Notification Dot knows they exist!
+  const urgentAlerts = [...todayAlerts, ...upcomingAlerts]; 
 
   const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
   const upcomingTotalPages = Math.ceil(upcomingAlerts.length / ITEMS_PER_PAGE);
@@ -255,7 +265,7 @@ export default function LeadManager() {
     }
   };
 
-  // ── FILTER / SORT HELPERS ──────────────────────────────────────────────────
+  // ── SAFE FILTER / SORT HELPERS ─────────────────────────────────────────────
   const uniqueSources = useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))].sort(), [leads]);
 
   const processedLeads = useMemo(() => {
@@ -263,7 +273,7 @@ export default function LeadManager() {
 
     if (filters.globalSearch.trim()) {
       const s = filters.globalSearch.toLowerCase();
-      r = r.filter(l => [l.name, l.company_name, l.requirement, l.phone, l.location, l.source].some(v => v?.toLowerCase().includes(s)));
+      r = r.filter(l => [l.name, l.company_name, l.requirement, l.phone, l.location, l.source].some(v => String(v || '').toLowerCase().includes(s)));
     }
     if (filters.source.length)    r = r.filter(l => filters.source.includes(l.source || 'Website'));
     if (filters.status.length)    r = r.filter(l => filters.status.includes(l.status || 'New'));
@@ -279,12 +289,11 @@ export default function LeadManager() {
         if (sortConfig.key === 'price')     return (Number(a.price || 0) - Number(b.price || 0)) * dir;
         if (sortConfig.key === 'status')    return (pipelineStages.indexOf(a.status || 'New') - pipelineStages.indexOf(b.status || 'New')) * dir;
         if (sortConfig.key === 'lead_temp') { const o = { Hot: 0, Warm: 1, Cold: 2 }; return ((o[a.lead_temp] ?? 2) - (o[b.lead_temp] ?? 2)) * dir; }
-        const av = String(a[sortConfig.key] ?? '').toLowerCase();
-        const bv = String(b[sortConfig.key] ?? '').toLowerCase();
+        const av = String(a[sortConfig.key] || '').toLowerCase();
+        const bv = String(b[sortConfig.key] || '').toLowerCase();
         return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
       });
     } else {
-      // 🚀 MASTER SORT LOGIC (BULLETPROOFED)
       r.sort((a, b) => {
         const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -715,8 +724,13 @@ export default function LeadManager() {
                 {calendarDays.map(day => {
                   const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isToday = dateString === todayStr;
+                  
+                  // Safe filtering
                   const dayCalls = leads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
-                  const dayMeets = leads.filter(l => l.gmeet_date && l.gmeet_date.startsWith(dateString) && !l.gmeet_attended);
+                  const dayMeets = leads.filter(l => {
+                    const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null;
+                    return gDate === dateString && !l.gmeet_attended;
+                  });
 
                   return (
                     <div key={day} className={`min-h-[85px] p-2.5 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
