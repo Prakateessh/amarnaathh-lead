@@ -20,7 +20,7 @@ const getLatestNotePreview = (notesStr) => {
   if (!lines.length) return null;
   const parsed = parseNoteEntry(lines[lines.length - 1]);
   const text = parsed?.text || '';
-  return text.length > 70 ? text.slice(0, 70) + '…' : text;
+  return text.length > 75 ? text.slice(0, 75) + '…' : text;
 };
 
 const getLatestNoteTimestamp = (notesStr) => {
@@ -42,31 +42,33 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// ── MINIMALIST "GHOST" BADGES ───────────────────────────────────────────
-const STATUS_DOT = {
-  'New':           'bg-slate-400',
-  'Contacted':     'bg-blue-500',
-  'Quoted / Demo': 'bg-amber-500',
-  'Negotiation':   'bg-purple-500',
-  'Closed - Won':  'bg-emerald-500',
-  'Closed - Lost': 'bg-rose-500',
+// ── FLASHY VIBRANT BADGES (LARGE SCALE) ───────────────────────────────────────────
+const STATUS_STYLE = {
+  'New':           'bg-slate-600 text-white',
+  'Contacted':     'bg-blue-600 text-white',
+  'Quoted / Demo': 'bg-amber-500 text-white',
+  'Negotiation':   'bg-purple-600 text-white',
+  'Closed - Won':  'bg-emerald-600 text-white',
+  'Closed - Lost': 'bg-rose-600 text-white',
 };
 
 const StatusBadge = ({ status }) => (
-  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 font-medium text-[11px] uppercase tracking-wider shadow-sm whitespace-nowrap">
-    <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[status] || STATUS_DOT['New']}`}></span>
+  <span className={`px-4 py-2 rounded-lg font-sans text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap ${STATUS_STYLE[status] || STATUS_STYLE['New']}`}>
     {status || 'New'}
   </span>
 );
 
-const TEMP_DOT = { 'Hot': 'bg-rose-500', 'Warm': 'bg-amber-500', 'Cold': 'bg-cyan-500' };
-
-const TempBadge = ({ temp }) => (
-  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 font-medium text-[11px] uppercase tracking-wider shadow-sm whitespace-nowrap">
-    <span className={`w-1.5 h-1.5 rounded-full ${TEMP_DOT[temp] || TEMP_DOT['Cold']}`}></span>
-    {temp || 'Cold'}
-  </span>
-);
+const TempBadge = ({ temp }) => {
+  const cfg = { Hot: '🔥 HOT', Warm: '🌡️ WARM', Cold: '❄️ COLD' };
+  const cls = temp === 'Hot' ? 'bg-rose-600 text-white'
+            : temp === 'Warm' ? 'bg-amber-500 text-white'
+            : 'bg-cyan-600 text-white';
+  return (
+    <span className={`px-4 py-2 rounded-lg font-sans text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap ${cls}`}>
+      {cfg[temp] || '❄️ COLD'}
+    </span>
+  );
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
 export default function LeadManager() {
@@ -173,11 +175,11 @@ export default function LeadManager() {
   const renderPagination = (currentPage, totalPages, setPage) => {
     if (totalPages <= 1) return null;
     return (
-      <div className="flex gap-2 justify-center mt-3">
+      <div className="flex gap-3 justify-center mt-4">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)}
-            className={`w-7 h-7 rounded-md font-mono text-xs font-medium transition-all duration-300 ${
-              currentPage === p ? 'bg-purple-900 text-white shadow-md ring-2 ring-[#EBA7FF]/50' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-[#EBA7FF]/10 hover:text-purple-900'
+            className={`w-10 h-10 rounded-lg font-mono text-base font-bold transition-all duration-300 ${
+              currentPage === p ? 'bg-purple-900 text-white shadow-md ring-2 ring-[#EBA7FF]/50' : 'bg-slate-100 border border-slate-300 text-slate-700 hover:bg-[#EBA7FF]/20 hover:text-purple-900'
             }`}>
             {p}
           </button>
@@ -349,7 +351,7 @@ export default function LeadManager() {
   
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
-      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}>
+      className={`ml-2 text-sm transition-all hover:scale-125 ${sortConfig.key === col ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -391,108 +393,108 @@ export default function LeadManager() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans text-slate-800">
       
-      {/* Subtle Background Glows */}
+      {/* Background Glows */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ════════════════════════════════════════════════════════════════════
-          PROFILE MODAL
+          PROFILE MODAL (SCALED UP)
       ════════════════════════════════════════════════════════════════════ */}
       {profileLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col overflow-hidden"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-[90rem] shadow-2xl flex flex-col overflow-hidden"
                style={{ maxHeight: '92vh' }}>
             
-            <div className="flex-shrink-0 flex justify-between items-start px-8 py-6 border-b border-slate-100 bg-white">
-              <div className="flex items-start gap-5 flex-1 min-w-0">
+            <div className="flex-shrink-0 flex justify-between items-start px-10 py-8 border-b border-slate-200 bg-slate-50/50">
+              <div className="flex items-start gap-6 flex-1 min-w-0">
                 <div className="min-w-0">
-                  <p className="text-slate-400 font-medium text-xs uppercase tracking-widest mb-1.5">Lead Profile</p>
-                  <h3 className="text-2xl font-semibold text-slate-900 truncate">{editData.name || '—'}</h3>
+                  <p className="text-purple-900/60 font-bold text-sm uppercase tracking-widest mb-2">Lead Profile</p>
+                  <h3 className="text-4xl font-black text-slate-900 truncate">{editData.name || '—'}</h3>
                   {editData.company_name && (
-                    <p className="text-slate-500 text-[15px] mt-0.5 font-normal">{editData.company_name}</p>
+                    <p className="text-slate-600 text-xl mt-2 font-medium">{editData.company_name}</p>
                   )}
                 </div>
-                <div className="pt-6 flex-shrink-0">
+                <div className="pt-8 flex-shrink-0">
                   <StatusBadge status={editData.status} />
                 </div>
               </div>
-              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-slate-400 hover:text-slate-700 transition-colors bg-white border border-slate-200 hover:bg-slate-50 p-2 rounded-full shadow-sm">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-2 text-slate-400 hover:text-purple-900 transition-colors bg-white border border-slate-200 hover:bg-[#EBA7FF]/20 p-3 rounded-full shadow-sm">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/50">
+            <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/30">
               {/* LEFT: Edit Form */}
-              <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 min-w-0">
+              <div className="flex-1 overflow-y-auto p-10 flex flex-col gap-10 min-w-0">
                 <section>
-                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Contact Information</p>
-                  <div className="grid grid-cols-2 gap-5">
+                  <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Contact Information</p>
+                  <div className="grid grid-cols-2 gap-6">
                     {[
                       { label: 'Name',     field: 'name',         type: 'text' },
                       { label: 'Company',  field: 'company_name', type: 'text' },
                       { label: 'Phone',    field: 'phone',        type: 'text' },
                       { label: 'Location', field: 'location',     type: 'text' },
                     ].map(({ label, field, type }) => (
-                      <div key={field} className="flex flex-col gap-1.5">
-                        <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">{label}</label>
+                      <div key={field} className="flex flex-col gap-2.5">
+                        <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">{label}</label>
                         <input type={type} value={editData[field] || ''}
                           onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] transition-shadow shadow-sm font-medium" />
+                          className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow shadow-sm font-medium" />
                       </div>
                     ))}
                   </div>
                 </section>
 
                 <section>
-                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Requirement</p>
-                  <textarea value={editData.requirement || ''} rows={3}
+                  <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Requirement</p>
+                  <textarea value={editData.requirement || ''} rows={4}
                     onChange={e => handleEditChange('requirement', e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm font-medium" />
+                    className="w-full bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm font-medium leading-relaxed" />
                 </section>
 
                 <section>
-                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Pipeline Details</p>
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Pipeline Stage</label>
+                  <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Pipeline Details</p>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2.5">
+                      <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Pipeline Stage</label>
                       <select value={editData.status || 'New'} onChange={e => handleEditChange('status', e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         {pipelineStages.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Temperature</label>
+                    <div className="flex flex-col gap-2.5">
+                      <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Temperature</label>
                       <select value={editData.lead_temp || 'Cold'} onChange={e => handleEditChange('lead_temp', e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         <option value="Cold">❄️ Cold</option>
                         <option value="Warm">🌡️ Warm</option>
                         <option value="Hot">🔥 Hot</option>
                       </select>
                     </div>
                     {editData.status === 'Closed - Lost' && (
-                      <div className="col-span-2 flex flex-col gap-1.5">
-                        <label className="font-medium text-[11px] text-rose-500 uppercase tracking-wider">Lost Reason</label>
+                      <div className="col-span-2 flex flex-col gap-2.5">
+                        <label className="font-bold text-sm text-rose-600 uppercase tracking-widest">Lost Reason</label>
                         <select value={editData.lost_reason || ''} onChange={e => handleEditChange('lost_reason', e.target.value)}
-                          className="bg-white border border-rose-200 rounded-lg px-3 py-2.5 text-rose-700 font-medium text-sm focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 cursor-pointer shadow-sm">
+                          className="bg-rose-50 border border-rose-300 rounded-xl px-5 py-4 text-rose-800 font-bold text-lg focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500 cursor-pointer shadow-sm">
                           <option value="">— Select reason —</option>
                           {lostReasons.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                       </div>
                     )}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Value (₹)</label>
-                      <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-[#EBA7FF] transition-shadow shadow-sm">
-                        <span className="px-3 text-slate-400 font-mono text-sm bg-slate-50 border-r border-slate-200 py-2.5">₹</span>
+                    <div className="flex flex-col gap-2.5">
+                      <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Value (₹)</label>
+                      <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-300 transition-shadow shadow-sm">
+                        <span className="px-5 text-emerald-700 font-mono font-black text-xl bg-slate-50 border-r border-slate-200 py-4">₹</span>
                         <input type="number" value={editData.price || ''} onChange={e => handleEditChange('price', e.target.value)}
-                          className="flex-1 bg-transparent py-2.5 px-3 text-slate-900 font-medium text-sm focus:outline-none tabular-nums" />
+                          className="flex-1 bg-transparent py-4 px-4 text-slate-900 font-mono font-black text-xl focus:outline-none" />
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Source</label>
+                    <div className="flex flex-col gap-2.5">
+                      <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Source</label>
                       <select value={editData.source || 'Website'} onChange={e => handleEditChange('source', e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         {['Website','YouTube','LinkedIn','Direct','Referral','Alibaba','IndiaMart','TradeIndia','Manual Entry'].map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -502,17 +504,17 @@ export default function LeadManager() {
                 </section>
 
                 <section>
-                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Schedule</p>
-                  <div className="grid grid-cols-3 gap-5">
+                  <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Schedule</p>
+                  <div className="grid grid-cols-3 gap-6">
                     {[
                       { label: 'Lead Date',      field: 'date' },
                       { label: 'Tentative Call', field: 'tentative_call_date' },
                       { label: 'GMeet Date',     field: 'gmeet_date' },
                     ].map(({ label, field }) => (
-                      <div key={field} className="flex flex-col gap-1.5">
-                        <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">{label}</label>
+                      <div key={field} className="flex flex-col gap-2.5">
+                        <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">{label}</label>
                         <input type="date" value={editData[field] || ''} onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 tabular-nums text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] transition-shadow cursor-pointer shadow-sm" />
+                          className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow cursor-pointer shadow-sm" />
                       </div>
                     ))}
                   </div>
@@ -520,36 +522,36 @@ export default function LeadManager() {
               </div>
 
               {/* RIGHT: Notes Feed */}
-              <div className="w-[420px] flex-shrink-0 flex flex-col border-l border-slate-200 overflow-hidden bg-white">
-                <div className="flex-shrink-0 p-6 border-b border-slate-100 bg-slate-50/50">
-                  <p className="font-semibold text-sm text-slate-800 mb-3">Append Update</p>
+              <div className="w-[500px] flex-shrink-0 flex flex-col border-l border-slate-200 overflow-hidden bg-white">
+                <div className="flex-shrink-0 p-8 border-b border-slate-200 bg-slate-50">
+                  <p className="font-black text-xl text-slate-800 mb-4">Append Update</p>
                   <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
                     placeholder="Type update or interaction..."
-                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-800 font-normal text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm"
-                    style={{ height: '90px' }} />
-                  <div className="flex gap-2 mt-3">
+                    className="w-full bg-white border border-slate-300 rounded-xl p-5 text-slate-900 font-medium text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm leading-relaxed"
+                    style={{ height: '140px' }} />
+                  <div className="flex flex-col gap-4 mt-5">
                     <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
-                      className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-700 font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] truncate cursor-pointer shadow-sm">
+                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-bold text-base focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] truncate cursor-pointer shadow-sm">
                       {users.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                     <button onClick={handleAppendNote} disabled={isAppending || !newNote.trim()}
-                      className="flex-shrink-0 bg-purple-900 hover:bg-[#EBA7FF] disabled:bg-slate-200 disabled:text-slate-400 hover:text-purple-950 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors shadow-sm">
+                      className="w-full bg-purple-900 hover:bg-[#EBA7FF] disabled:bg-slate-300 disabled:text-slate-500 hover:text-purple-950 text-white font-black text-lg px-6 py-4 rounded-xl transition-all duration-300 shadow-md">
                       {isAppending ? '…' : 'Add Note'}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-sm text-slate-800">Activity Log</span>
-                    <span className="bg-white text-slate-500 border border-slate-200 px-2.5 py-0.5 rounded-md text-[10px] tabular-nums font-medium shadow-sm">
+                <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-5 bg-[#EBA7FF]/5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-black text-xl text-slate-800">Activity Log</span>
+                    <span className="bg-white text-purple-900 border border-[#EBA7FF]/50 px-4 py-1.5 rounded-lg text-sm font-mono font-bold">
                       {parseNoteLines(profileLead.notes).length} entries
                     </span>
                   </div>
                   {parseNoteLines(profileLead.notes).length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-center opacity-60">
-                      <span className="text-4xl text-slate-300">📝</span>
-                      <span className="text-slate-500 font-normal text-sm">No notes recorded yet.</span>
+                    <div className="flex-1 flex flex-col items-center justify-center gap-5 py-10 text-center opacity-60">
+                      <span className="text-6xl text-slate-300">📝</span>
+                      <span className="text-slate-500 font-medium text-lg">No notes recorded yet.</span>
                     </div>
                   ) : (
                     [...parseNoteLines(profileLead.notes)].reverse().map((line, i) => {
@@ -557,19 +559,19 @@ export default function LeadManager() {
                       const isFirst = i === 0;
                       return (
                         <div key={i}
-                          className={`rounded-xl p-4 flex flex-col gap-2.5 border transition-all ${
-                            isFirst ? 'bg-purple-50/50 border-[#EBA7FF]/50 shadow-sm' : 'bg-white border-slate-100 shadow-sm'
+                          className={`rounded-2xl p-6 flex flex-col gap-3.5 border transition-all ${
+                            isFirst ? 'bg-white border-[#EBA7FF] shadow-[0_0_20px_rgba(235,167,255,0.3)] ring-1 ring-[#EBA7FF]' : 'bg-white border-slate-200 shadow-sm'
                           }`}>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`font-semibold text-[13px] truncate ${isFirst ? 'text-purple-900' : 'text-slate-700'}`}>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className={`font-black text-lg truncate ${isFirst ? 'text-purple-900' : 'text-slate-800'}`}>
                               {user || 'Unknown'}
                             </span>
-                            <span className="text-slate-400 tabular-nums text-[10px] font-medium flex-shrink-0">
+                            <span className="text-slate-500 font-mono text-xs font-bold flex-shrink-0">
                               {timestamp || '—'}
                             </span>
                           </div>
-                          <p className={`text-[13px] leading-relaxed font-normal ${isFirst ? 'text-slate-800' : 'text-slate-600'}`}>{text}</p>
-                          {isFirst && <span className="text-[9px] text-purple-600 uppercase tracking-widest mt-1 font-semibold">↑ Most Recent</span>}
+                          <p className={`text-lg leading-relaxed font-medium ${isFirst ? 'text-slate-900' : 'text-slate-700'}`}>{text}</p>
+                          {isFirst && <span className="font-mono text-xs text-[#EBA7FF] uppercase tracking-widest mt-2 font-black">↑ Most Recent</span>}
                         </div>
                       );
                     })
@@ -578,24 +580,24 @@ export default function LeadManager() {
               </div>
             </div>
 
-            <div className="flex-shrink-0 flex items-center justify-between px-8 py-4 border-t border-slate-200 bg-white">
-              <span className="tabular-nums text-[10px] font-medium text-slate-400 tracking-wider">
+            <div className="flex-shrink-0 flex items-center justify-between px-10 py-6 border-t border-slate-200 bg-slate-100">
+              <span className="font-mono text-sm font-bold text-slate-400 tracking-widest">
                 ID: {String(profileLead.id).slice(0, 8)}…
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-5">
                 {saveSuccess && (
-                  <span className="text-emerald-600 font-medium text-xs flex items-center gap-1.5 animate-pulse bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <span className="text-emerald-700 font-bold text-lg flex items-center gap-2 animate-pulse bg-emerald-100 px-5 py-2.5 rounded-xl border border-emerald-300 shadow-sm">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                     Saved successfully
                   </span>
                 )}
-                <button onClick={closeProfile} className="px-5 py-2 font-medium text-sm text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm transition-colors">
+                <button onClick={closeProfile} className="px-8 py-4 font-bold text-lg text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl shadow-sm transition-colors">
                   Discard
                 </button>
                 <button onClick={handleSaveChanges} disabled={isSaving}
-                  className="px-6 py-2 bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-sm rounded-lg transition-colors shadow-sm flex items-center gap-2">
+                  className="px-10 py-4 bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-lg rounded-xl transition-all duration-300 shadow-lg flex items-center gap-3 hover:shadow-[0_0_20px_rgba(235,167,255,0.6)]">
                   {isSaving ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
@@ -608,46 +610,45 @@ export default function LeadManager() {
           REMINDERS & CALENDAR MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {showReminders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white border border-slate-200 p-8 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 p-10 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-8">
             
-            <div className="flex justify-between items-center border-b border-slate-100 pb-5">
-              <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-6">
+              <h3 className="text-4xl font-black text-purple-900 flex items-center gap-4">
                 📅 Schedule & Reminders
               </h3>
-              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors border border-slate-200">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-4 rounded-full transition-colors border border-slate-200 shadow-sm">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-slate-100 pb-8">
-              <div className="flex flex-col gap-4 bg-slate-50 border border-slate-200 p-5 rounded-xl">
-                <h4 className="font-semibold text-sm text-slate-800 border-b border-slate-200 pb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                  <span>Today & Overdue</span>
-                  <span className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] tabular-nums font-medium shadow-sm">{todayAlerts.length}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-b border-slate-200 pb-10">
+              <div className="flex flex-col gap-5 bg-rose-50 border border-rose-200 p-8 rounded-2xl shadow-sm">
+                <h4 className="font-black text-xl text-rose-700 border-b border-rose-200 pb-4 flex items-center gap-3">
+                  <span>⚠️ Today & Overdue</span>
+                  <span className="bg-rose-200 text-rose-900 px-4 py-1.5 rounded-full text-sm font-mono">{todayAlerts.length}</span>
                 </h4>
                 
                 {currentTodayAlerts.length > 0 ? (
-                  <div className="flex flex-col gap-3 min-h-[380px]">
+                  <div className="flex flex-col gap-5 min-h-[420px]">
                     {currentTodayAlerts.map((alert, index) => (
-                      <div key={index} className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
+                      <div key={index} className="bg-white border border-rose-300 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
                         <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-wider">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
                               {alert.alertType}
                             </span>
-                            <span className="text-rose-600 tabular-nums font-medium text-[11px]">
+                            <span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">
                               {alert.alertDate}
                             </span>
                           </div>
-                          <p className="text-slate-900 font-semibold text-base truncate">{alert.name}</p>
+                          <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
                         </div>
-                        <div className="flex gap-2 w-full mt-1">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
+                        <div className="flex gap-4 w-full mt-3">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">
                             ✓ Attended
                           </button>
                         </div>
@@ -658,39 +659,38 @@ export default function LeadManager() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center min-h-[150px]">
-                    <span className="text-slate-500 font-medium text-sm bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">✅ Clear for today</span>
+                  <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                    <span className="text-emerald-700 font-black text-xl bg-emerald-100 px-8 py-4 rounded-2xl border border-emerald-300 shadow-sm">✅ Clear for today</span>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col gap-4 bg-slate-50 border border-slate-200 p-5 rounded-xl">
-                <h4 className="font-semibold text-sm text-slate-800 border-b border-slate-200 pb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <span>Tomorrow & Upcoming</span>
-                  <span className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] tabular-nums font-medium shadow-sm">{upcomingAlerts.length}</span>
+              <div className="flex flex-col gap-5 bg-slate-50 border border-slate-200 p-8 rounded-2xl shadow-sm">
+                <h4 className="font-black text-xl text-slate-800 border-b border-slate-200 pb-4 flex items-center gap-3">
+                  <span>📅 Tomorrow & Upcoming</span>
+                  <span className="bg-slate-200 text-slate-800 px-4 py-1.5 rounded-full text-sm font-mono">{upcomingAlerts.length}</span>
                 </h4>
                 
                 {currentUpcomingAlerts.length > 0 ? (
-                  <div className="flex flex-col gap-3 min-h-[380px]">
+                  <div className="flex flex-col gap-5 min-h-[420px]">
                     {currentUpcomingAlerts.map((alert, index) => (
-                      <div key={index} className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
+                      <div key={index} className="bg-white border border-slate-200 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
                         <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-600 font-medium text-[10px] uppercase tracking-wider">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
                               {alert.alertType}
                             </span>
-                            <span className="text-slate-500 tabular-nums font-medium text-[11px]">
+                            <span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">
                               {alert.alertDate}
                             </span>
                           </div>
-                          <p className="text-slate-900 font-semibold text-base truncate">{alert.name}</p>
+                          <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
                         </div>
-                        <div className="flex gap-2 w-full mt-1">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
+                        <div className="flex gap-4 w-full mt-3">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-[#EBA7FF]/20 border border-slate-300 text-slate-700 hover:text-purple-900 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">
                             ✓ Attended
                           </button>
                         </div>
@@ -701,30 +701,30 @@ export default function LeadManager() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center min-h-[150px]">
-                    <span className="text-slate-400 font-medium text-sm bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">No upcoming alerts</span>
+                  <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                    <span className="text-slate-500 font-black text-xl bg-white px-8 py-4 rounded-2xl border border-slate-200 shadow-sm">No upcoming alerts</span>
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <h4 className="font-semibold text-sm text-slate-800 uppercase tracking-widest">
+              <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="font-black text-xl text-slate-800 uppercase tracking-widest">
                   {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h4>
-                <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 bg-white text-slate-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 shadow-sm">{'<'}</button>
-                  <button onClick={() => setCurrentMonth(new Date())} className="px-4 text-[11px] font-medium bg-white text-slate-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 shadow-sm tracking-wider">TODAY</button>
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 bg-white text-slate-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 shadow-sm">{'>'}</button>
+                <div className="flex gap-3">
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-4 bg-slate-100 text-slate-700 font-black rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-6 font-mono text-base font-black bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-4 bg-slate-100 text-slate-700 font-black rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">{'>'}</button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-7 gap-3">
+              <div className="grid grid-cols-7 gap-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center font-medium text-[11px] uppercase text-slate-400 py-1">{d}</div>
+                  <div key={d} className="text-center font-black text-base uppercase text-slate-500 py-3">{d}</div>
                 ))}
-                {blanks.map(b => <div key={`blank-${b}`} className="p-2"></div>)}
+                {blanks.map(b => <div key={`blank-${b}`} className="p-3"></div>)}
                 {calendarDays.map(day => {
                   const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isToday = dateString === todayStr;
@@ -736,17 +736,17 @@ export default function LeadManager() {
                   });
 
                   return (
-                    <div key={day} className={`min-h-[85px] p-2.5 border rounded-xl flex flex-col items-start gap-1.5 transition-colors ${isToday ? 'border-purple-300 bg-purple-50 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                      <span className={`tabular-nums text-xs ${isToday ? 'text-purple-700 font-semibold' : 'text-slate-600 font-medium'}`}>{day}</span>
-                      <div className="flex flex-col gap-1 w-full overflow-hidden">
+                    <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
+                      <span className={`font-mono text-lg ${isToday ? 'text-purple-900 font-black' : 'text-slate-600 font-bold'}`}>{day}</span>
+                      <div className="flex flex-col gap-2 w-full overflow-hidden">
                         {dayCalls.length > 0 && (
-                          <div className="text-[9px] bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> {dayCalls.length} Call
+                          <div className="text-sm bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
+                            📞 {dayCalls.length} Call(s)
                           </div>
                         )}
                         {dayMeets.length > 0 && (
-                          <div className="text-[9px] bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> {dayMeets.length} Meet
+                          <div className="text-sm bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
+                            📹 {dayMeets.length} Meet(s)
                           </div>
                         )}
                       </div>
@@ -754,9 +754,9 @@ export default function LeadManager() {
                   );
                 })}
               </div>
-              <div className="flex gap-6 mt-6 justify-center">
-                <span className="flex items-center gap-1.5 font-medium text-[11px] text-slate-500"><span className="w-2 h-2 rounded-full bg-blue-400"></span> Call Scheduled</span>
-                <span className="flex items-center gap-1.5 font-medium text-[11px] text-slate-500"><span className="w-2 h-2 rounded-full bg-purple-400"></span> GMeet Scheduled</span>
+              <div className="flex gap-8 mt-10 justify-center">
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm"></span> Call Scheduled</span>
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-purple-100 border-2 border-purple-400 shadow-sm"></span> GMeet Scheduled</span>
               </div>
             </div>
           </div>
@@ -766,297 +766,302 @@ export default function LeadManager() {
       {/* ════════════════════════════════════════════════════════════════════
           MAIN PAGE CONTENT
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-6 relative z-10">
+      <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
         <button onClick={() => navigate('/database')}
-          className="text-slate-500 hover:text-slate-800 font-medium text-[13px] uppercase tracking-wider transition-colors flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm hover:shadow-md">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Analytics
         </button>
         
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-5 items-center">
           <button onClick={() => setShowReminders(true)}
-            className="relative text-slate-600 hover:text-purple-900 font-medium text-[13px] uppercase tracking-wider transition-all flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/5"
+            className="relative text-slate-700 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-all flex items-center gap-3 bg-white px-7 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/10"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
             Reminders
             {urgentAlerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="absolute -top-2 -right-2 flex h-5 w-5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 border-white"></span>
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-rose-600 border-2 border-white"></span>
               </span>
             )}
           </button>
           
-          <span className="font-medium text-[13px] text-white tracking-wider uppercase flex items-center gap-2 bg-purple-900 px-4 py-2 rounded-lg shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          <span className="font-black text-base text-purple-900 tracking-widest uppercase flex items-center gap-3 bg-[#EBA7FF]/30 px-7 py-4 rounded-xl border border-[#EBA7FF]/60 shadow-sm">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             Lead Manager
           </span>
         </div>
       </div>
 
-      <div className="bg-white w-full max-w-[95%] xl:max-w-[95%] p-2 relative z-10 flex flex-col shadow-sm rounded-2xl border border-slate-200">
+      <div className="bg-white w-full max-w-[95%] xl:max-w-[95%] p-4 relative z-10 flex flex-col shadow-2xl shadow-slate-200/60 rounded-3xl border border-slate-300">
         
         {/* Header Section */}
-        <div className="px-6 pt-6 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="px-10 pt-10 pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Lead Manager</h1>
-              <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-md text-[10px] font-medium tracking-wider uppercase mt-1">
+            <div className="flex items-center gap-5">
+              <h1 className="text-5xl font-black text-slate-900 tracking-tight">Lead Manager</h1>
+              <span className="bg-[#EBA7FF]/20 text-purple-900 border border-[#EBA7FF]/50 px-4 py-2 rounded-lg font-mono text-xs font-bold tracking-widest uppercase shadow-sm mt-2">
                 Click row to view profile
               </span>
             </div>
+            <p className="text-slate-600 font-medium text-lg mt-3">Sort, filter, and search leads. Table is view-only.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <button onClick={handleDownloadExcel}
-              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-medium text-[11px] tracking-widest uppercase px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
-              <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 hover:text-purple-900 font-black text-sm tracking-widest uppercase px-8 py-4 rounded-xl transition-colors flex items-center gap-3 shadow-sm">
+              <svg className="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
               Export{processedLeads.length !== leads.length ? ` (${processedLeads.length})` : ''}
             </button>
-            <button onClick={fetchLeads} className="bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium text-[11px] uppercase tracking-widest px-4 py-2.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
+            <button onClick={fetchLeads} className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm uppercase tracking-widest px-8 py-4 rounded-xl transition-colors border border-slate-300 shadow-sm">
               Refresh
             </button>
           </div>
         </div>
 
         {/* ── SEARCH + FILTER BAR ───────────────────────────────────────────── */}
-        <div className="px-6 pb-4 flex flex-col gap-3">
-          <div className="flex gap-3 items-center">
+        <div className="px-10 pb-6 flex flex-col gap-4">
+          <div className="flex gap-5 items-center">
             <div className="relative flex-1">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input type="text" value={filters.globalSearch}
                 onChange={e => setFilters(p => ({ ...p, globalSearch: e.target.value }))}
-                placeholder="Search name, company, requirement..."
-                className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-8 py-2.5 text-slate-800 font-normal text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] transition-shadow placeholder:text-slate-400 shadow-sm" />
+                placeholder="Search name, company, requirement, phone, location..."
+                className="w-full bg-white border border-slate-300 rounded-2xl pl-14 pr-12 py-5 text-slate-900 font-medium text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow placeholder:text-slate-400 shadow-sm" />
               {filters.globalSearch && (
-                <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+                <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 text-3xl font-black leading-none">×</button>
               )}
             </div>
             <button onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-[11px] tracking-widest uppercase border transition-colors shadow-sm whitespace-nowrap ${
+              className={`flex items-center gap-3 px-8 py-5 rounded-2xl font-black text-base tracking-widest uppercase border transition-colors shadow-sm whitespace-nowrap ${
                 showFilters || activeFilterCount > 0
-                  ? 'bg-purple-50 border-[#EBA7FF]/50 text-purple-900 ring-1 ring-[#EBA7FF]/30'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-purple-100 border-[#EBA7FF] text-purple-900 ring-2 ring-[#EBA7FF]/50'
+                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
               }`}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
               Filters
               {activeFilterCount > 0 && (
-                <span className="bg-purple-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ml-1">{activeFilterCount}</span>
+                <span className="bg-purple-900 text-white text-sm font-black rounded-lg px-2.5 py-0.5 ml-2">{activeFilterCount}</span>
               )}
             </button>
             {(activeFilterCount > 0 || sortConfig.key) && (
-              <button onClick={clearAllFilters} className="px-4 py-2.5 rounded-lg font-medium text-[11px] tracking-widest uppercase border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors whitespace-nowrap shadow-sm">
-                Clear
+              <button onClick={clearAllFilters} className="px-8 py-5 rounded-2xl font-black text-sm tracking-widest uppercase border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors whitespace-nowrap shadow-sm">
+                Clear All
               </button>
             )}
           </div>
           
           {showFilters && (
-            <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-6 flex flex-col gap-6 mt-1 shadow-inner">
-              <div className="flex flex-col gap-3">
-                <span className="font-medium text-[10px] text-slate-500 uppercase tracking-wider">Source</span>
-                <div className="flex flex-wrap gap-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col gap-8 mt-2 shadow-inner">
+              <div className="flex flex-col gap-4">
+                <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Source</span>
+                <div className="flex flex-wrap gap-3">
                   {uniqueSources.map(src => (
                     <button key={src} onClick={() => toggleFilter('source', src)}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-purple-900 border-purple-900 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                      className={`px-5 py-2.5 rounded-xl font-bold text-base border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-purple-900 border-purple-950 text-white shadow-[0_0_15px_rgba(235,167,255,0.4)]' : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                       {filters.source.includes(src) && '✓ '}{src}
                     </button>
                   ))}
-                  {!uniqueSources.length && <span className="text-slate-400 font-normal text-sm">No sources loaded.</span>}
+                  {!uniqueSources.length && <span className="text-slate-500 font-medium text-lg">No sources loaded.</span>}
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
-                <span className="font-medium text-[10px] text-slate-500 uppercase tracking-wider">Pipeline Stage</span>
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-4">
+                <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Pipeline Stage</span>
+                <div className="flex flex-wrap gap-3">
                   {pipelineStages.map(stage => {
-                    const on = stage === 'Closed - Won' ? 'bg-emerald-600 border-emerald-600 text-white'
-                             : stage === 'Closed - Lost' ? 'bg-rose-600 border-rose-600 text-white'
-                             : 'bg-purple-900 border-purple-900 text-white';
+                    const on = stage === 'Closed - Won' ? 'bg-emerald-600 border-emerald-700 text-white shadow-md'
+                             : stage === 'Closed - Lost' ? 'bg-rose-600 border-rose-700 text-white shadow-md'
+                             : stage === 'Negotiation' ? 'bg-purple-600 border-purple-700 text-white shadow-md'
+                             : 'bg-blue-600 border-blue-700 text-white shadow-md';
                     return (
                       <button key={stage} onClick={() => toggleFilter('status', stage)}
-                        className={`px-3 py-1.5 rounded-md font-medium text-xs border transition-all shadow-sm ${filters.status.includes(stage) ? on : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                        className={`px-5 py-2.5 rounded-xl font-bold text-base border transition-all shadow-sm ${filters.status.includes(stage) ? on : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                         {filters.status.includes(stage) && '✓ '}{stage}
                       </button>
                     );
                   })}
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
-                <span className="font-medium text-[10px] text-slate-500 uppercase tracking-wider">Temperature</span>
-                <div className="flex gap-2.5">
-                  {[{ val:'Hot', label:'🔥 Hot', on:'bg-rose-600 border-rose-600 text-white' },
-                    { val:'Warm', label:'🌡️ Warm', on:'bg-amber-500 border-amber-500 text-white' },
-                    { val:'Cold', label:'❄️ Cold', on:'bg-cyan-600 border-cyan-600 text-white' }
+              <div className="flex flex-col gap-4">
+                <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Temperature</span>
+                <div className="flex gap-4">
+                  {[{ val:'Hot', label:'🔥 Hot', on:'bg-rose-600 border-rose-700 text-white shadow-md' },
+                    { val:'Warm', label:'🌡️ Warm', on:'bg-amber-500 border-amber-600 text-white shadow-md' },
+                    { val:'Cold', label:'❄️ Cold', on:'bg-cyan-600 border-cyan-700 text-white shadow-md' }
                   ].map(({ val, label, on }) => (
                     <button key={val} onClick={() => toggleFilter('lead_temp', val)}
-                      className={`px-3 py-1.5 rounded-md font-medium text-xs border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                      className={`px-6 py-3 rounded-xl font-bold text-base border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                       {filters.lead_temp.includes(val) && '✓ '}{label}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                <div className="flex flex-col gap-2">
-                  <span className="font-medium text-[10px] text-slate-500 uppercase tracking-wider">Date Range</span>
-                  <div className="flex items-center gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-4 border-t border-slate-200 pt-8">
+                <div className="flex flex-col gap-4">
+                  <span className="font-black text-sm text-slate-500 uppercase tracking-widest">Date Range</span>
+                  <div className="flex items-center gap-4">
                     <input type="date" value={filters.dateStart} onChange={e => setFilters(p => ({ ...p, dateStart: e.target.value }))}
-                      className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-lg text-slate-800 tabular-nums font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
-                    <span className="text-slate-300 font-medium text-sm">→</span>
+                      className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
+                    <span className="text-slate-400 font-black text-2xl">→</span>
                     <input type="date" value={filters.dateEnd} onChange={e => setFilters(p => ({ ...p, dateEnd: e.target.value }))}
-                      className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-lg text-slate-800 tabular-nums font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
+                      className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-medium text-[10px] text-slate-500 uppercase tracking-wider">Value Range (₹)</span>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-4">
+                  <span className="font-black text-sm text-slate-500 uppercase tracking-widest">Value Range (₹)</span>
+                  <div className="flex items-center gap-4">
                     <input type="number" value={filters.priceMin} onChange={e => setFilters(p => ({ ...p, priceMin: e.target.value }))}
-                      placeholder="Min" className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-lg text-slate-800 tabular-nums font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
-                    <span className="text-slate-300 font-medium text-sm">→</span>
+                      placeholder="Min" className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
+                    <span className="text-slate-400 font-black text-2xl">→</span>
                     <input type="number" value={filters.priceMax} onChange={e => setFilters(p => ({ ...p, priceMax: e.target.value }))}
-                      placeholder="Max" className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-lg text-slate-800 tabular-nums font-medium text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
+                      placeholder="Max" className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
                   </div>
                 </div>
               </div>
             </div>
           )}
           {activeChips.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-3 mt-4">
               {activeChips.map((chip, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md font-medium text-[11px] shadow-sm">
+                <span key={i} className="inline-flex items-center gap-3 bg-[#EBA7FF]/20 border border-[#EBA7FF]/50 text-purple-900 px-5 py-2.5 rounded-xl font-bold text-base shadow-sm">
                   {chip.label}
-                  <button onClick={chip.remove} className="hover:text-slate-900 transition-colors text-sm leading-none bg-slate-200/50 hover:bg-slate-300 px-1.5 rounded">×</button>
+                  <button onClick={chip.remove} className="hover:text-purple-950 transition-colors text-xl leading-none bg-purple-900/10 hover:bg-purple-900/20 px-2.5 rounded-md">×</button>
                 </span>
               ))}
             </div>
           )}
         </div>
 
-        {/* ── DATA TABLE (MINIMALIST DESIGN) ────────────────────────────────────────────────────── */}
-        <div className="overflow-x-auto relative rounded-xl border border-slate-200 bg-white mx-6 mb-6">
+        {/* ── DATA TABLE ────────────────────────────────────────────────────── */}
+        <div className="overflow-x-auto relative rounded-2xl border border-slate-300 bg-white shadow-md mx-8 mb-8">
           {selectedLeads.length > 0 && (
-            <div className="absolute top-0 left-0 w-full bg-slate-800 border-b border-slate-900 p-3.5 flex justify-between items-center z-20 rounded-t-xl">
-              <span className="text-white font-medium text-[13px] tracking-wider uppercase ml-4">{selectedLeads.length} Lead(s) Selected</span>
-              <button onClick={handleDeleteSelected} className="bg-rose-500 hover:bg-rose-600 text-white font-medium text-[11px] tracking-wider uppercase px-4 py-2 rounded-md transition-colors shadow-sm">
+            <div className="absolute top-0 left-0 w-full bg-slate-900 border-b border-slate-950 p-5 flex justify-between items-center z-20 rounded-t-2xl shadow-lg">
+              <span className="text-white font-bold text-base tracking-widest uppercase ml-5">{selectedLeads.length} Lead(s) Selected</span>
+              <button onClick={handleDeleteSelected} className="bg-rose-600 hover:bg-rose-700 text-white font-black text-sm tracking-widest uppercase px-6 py-3 rounded-xl transition-colors shadow-sm">
                 🗑️ Delete Selected
               </button>
             </div>
           )}
           {isLoading ? (
-            <div className="py-24 flex flex-col items-center justify-center gap-4 text-slate-400 font-medium tracking-wider text-sm uppercase">
-              <svg className="w-8 h-8 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+            <div className="py-40 flex flex-col items-center justify-center gap-6 text-slate-500 font-bold tracking-widest text-xl uppercase">
+              <svg className="w-16 h-16 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Loading Database...
             </div>
           ) : processedLeads.length === 0 ? (
-            <div className="py-24 flex flex-col items-center justify-center gap-3">
-              <span className="text-5xl opacity-20 text-slate-400">🔍</span>
-              <span className="text-slate-500 font-medium text-sm">No leads match your current filters.</span>
-              <button onClick={clearAllFilters} className="text-purple-600 hover:text-[#EBA7FF] font-medium text-xs uppercase tracking-wider underline underline-offset-4 transition-colors mt-1">Clear filters</button>
+            <div className="py-40 flex flex-col items-center justify-center gap-5">
+              <span className="text-7xl opacity-20 text-slate-500">🔍</span>
+              <span className="text-slate-600 font-bold text-xl">No leads match your current filters.</span>
+              <button onClick={clearAllFilters} className="text-purple-700 hover:text-[#EBA7FF] font-black text-base uppercase tracking-widest underline underline-offset-8 transition-colors mt-2">Clear filters</button>
             </div>
           ) : (
             <>
-              <table className="w-full text-left border-collapse min-w-[1500px]">
+              <table className="w-full text-left border-collapse min-w-[1800px]">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-medium text-[11px] uppercase tracking-wider">
-                    <th className="py-4 px-5 w-12">
+                  <tr className="border-b-2 border-slate-300 bg-slate-100 text-slate-600 font-black text-sm uppercase tracking-wider">
+                    <th className="py-6 px-6 w-16">
                       <input type="checkbox" onChange={handleSelectAll}
                         checked={selectedLeads.length === processedLeads.length && processedLeads.length > 0}
-                        className="w-4 h-4 accent-purple-600 cursor-pointer rounded border-slate-300" />
+                        className="w-6 h-6 accent-purple-700 cursor-pointer rounded border-slate-400" />
                     </th>
-                    <th className="py-4 px-4 w-52"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
-                    <th className="py-4 px-4 w-64">Requirement</th>
-                    <th className="py-4 px-4 w-72">Latest Note</th>
-                    <th className="py-4 px-4 text-center w-36"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
-                    <th className="py-4 px-4 text-center w-28"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
-                    <th className="py-4 px-4 text-right w-32"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
-                    <th className="py-4 px-4 text-center w-40">Call / Meet</th>
-                    <th className="py-4 px-4 w-32"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
-                    <th className="py-4 px-4 w-32">Source</th>
+                    <th className="py-6 px-5 w-72"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
+                    <th className="py-6 px-5 w-80">Requirement</th>
+                    <th className="py-6 px-5 w-80">Latest Note</th>
+                    <th className="py-6 px-5 text-center w-48"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
+                    <th className="py-6 px-5 text-center w-36"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
+                    <th className="py-6 px-5 text-right w-44"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
+                    <th className="py-6 px-5 text-center w-48">Call / Meet</th>
+                    <th className="py-6 px-5 w-40"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
+                    <th className="py-6 px-5 w-40">Source</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {processedLeads.map((lead, idx) => {
                     const latestNote  = getLatestNotePreview(lead.notes);
                     const noteCount   = parseNoteLines(lead.notes).length;
                     return (
                       <tr key={lead.id}
                         onClick={() => openProfile(lead)}
-                        className={`transition-colors duration-150 cursor-pointer group border-b border-slate-100 last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-[#EBA7FF]/5`}>
+                        className={`transition-colors duration-150 cursor-pointer group ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'} hover:bg-[#EBA7FF]/10`}>
                         
-                        <td className="py-5 px-5" onClick={e => e.stopPropagation()}>
+                        <td className="py-6 px-6" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={selectedLeads.includes(lead.id)}
                             onChange={() => handleSelectLead(lead.id)}
-                            className="w-4 h-4 accent-purple-600 cursor-pointer rounded border-slate-300" />
+                            className="w-6 h-6 accent-purple-700 cursor-pointer rounded border-slate-400" />
                         </td>
                         
-                        <td className="py-5 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-medium text-xs shadow-sm">
+                        <td className="py-6 px-5">
+                          <div className="flex items-center gap-4">
+                            {/* Restored Purple Gradient Avatar */}
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-purple-900 to-[#EBA7FF] border-2 border-purple-700 flex items-center justify-center text-white font-black text-base shadow-sm">
                               {getInitials(lead.name)}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-slate-900 font-semibold text-[14px] leading-tight">{lead.name || '—'}</span>
-                              <span className="text-slate-500 text-[12px] font-normal mt-0.5">{lead.company_name || ''}</span>
-                              <span className="text-slate-400 text-[11px] tabular-nums font-medium mt-0.5">{lead.phone || ''}</span>
+                              <span className="text-slate-900 font-black text-xl">{lead.name || '—'}</span>
+                              <span className="text-slate-600 text-base font-bold mt-1">{lead.company_name || ''}</span>
+                              <span className="text-blue-700 text-sm tabular-nums font-bold mt-0.5">{lead.phone || ''}</span>
                             </div>
                           </div>
                         </td>
                         
-                        <td className="py-5 px-4">
-                          <span className="text-slate-700 font-normal text-[13px] line-clamp-2 leading-relaxed">
-                            {lead.requirement || <span className="text-slate-400 italic">No requirement</span>}
+                        <td className="py-6 px-5">
+                          <span className="text-slate-800 font-medium text-base line-clamp-3 leading-relaxed">
+                            {lead.requirement || <span className="text-slate-400 italic font-normal">No requirement provided</span>}
                           </span>
                         </td>
                         
-                        <td className="py-5 px-4">
+                        <td className="py-6 px-5">
                           {latestNote ? (
-                            <div className="flex flex-col gap-1.5">
-                              <p className="text-slate-600 text-[13px] leading-relaxed line-clamp-2 italic font-normal">"{latestNote}"</p>
-                              {noteCount > 1 && <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">+{noteCount - 1} more</span>}
+                            <div className="flex flex-col gap-2 bg-slate-100/50 group-hover:bg-white p-4 rounded-xl border border-slate-200 transition-colors shadow-sm">
+                              <p className="text-slate-700 text-base leading-relaxed line-clamp-2 italic font-medium">"{latestNote}"</p>
+                              {noteCount > 1 && <span className="text-purple-800 font-bold text-xs uppercase tracking-widest">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
-                            <span className="text-slate-400 font-normal text-[12px] italic">No notes</span>
+                            <span className="text-slate-400 font-medium text-sm italic">No notes recorded</span>
                           )}
                         </td>
                         
-                        <td className="py-5 px-4 text-center">
-                          <div className="flex flex-col items-center gap-1.5">
+                        <td className="py-6 px-5 text-center">
+                          <div className="flex flex-col items-center gap-2.5">
+                            {/* Solid Background Flashy Badges restored */}
                             <StatusBadge status={lead.status} />
                             {lead.status === 'Closed - Lost' && lead.lost_reason && (
-                              <span className="text-[10px] text-slate-500 font-normal truncate max-w-[120px]" title={lead.lost_reason}>
-                                {lead.lost_reason}
+                              <span className="text-xs text-rose-800 font-bold font-mono truncate max-w-[160px] px-3 py-1.5 bg-rose-100 rounded-lg border border-rose-300 shadow-sm" title={lead.lost_reason}>
+                                ↳ {lead.lost_reason}
                               </span>
                             )}
                           </div>
                         </td>
                         
-                        <td className="py-5 px-4 text-center">
+                        <td className="py-6 px-5 text-center">
                           <TempBadge temp={lead.lead_temp} />
                         </td>
                         
-                        <td className="py-5 px-4 text-right">
-                          <span className="text-slate-900 font-medium text-[14px] tabular-nums">
-                            {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-sm">—</span>}
+                        <td className="py-6 px-5 text-right">
+                          {/* Flashy Green Text for Money Restored */}
+                          <span className="text-emerald-600 font-mono text-xl font-black tabular-nums">
+                            {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-lg">—</span>}
                           </span>
                         </td>
                         
-                        <td className="py-5 px-4 text-center">
-                          <div className="flex flex-col gap-1 items-start w-fit mx-auto min-w-[100px]">
-                            {lead.tentative_call_date && <span className="tabular-nums text-[11px] text-slate-600 font-medium flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> {lead.tentative_call_date}</span>}
-                            {lead.gmeet_date && <span className="tabular-nums text-[11px] text-slate-600 font-medium flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> {lead.gmeet_date}</span>}
-                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-normal text-[11px] mx-auto italic">Unscheduled</span>}
+                        <td className="py-6 px-5 text-center">
+                          <div className="flex flex-col gap-2 items-start bg-slate-100 group-hover:bg-white p-3.5 rounded-xl border border-slate-200 w-fit mx-auto min-w-[130px] transition-colors shadow-sm">
+                            {lead.tentative_call_date && <span className="tabular-nums text-sm text-blue-800 font-bold flex items-center gap-2">📞 {lead.tentative_call_date}</span>}
+                            {lead.gmeet_date && <span className="tabular-nums text-sm text-purple-800 font-bold flex items-center gap-2">📹 {lead.gmeet_date}</span>}
+                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-medium text-sm mx-auto py-1 italic">Unscheduled</span>}
                           </div>
                         </td>
                         
-                        <td className="py-5 px-4">
-                          <span className="text-slate-600 tabular-nums font-medium text-[12px]">{lead.date || '—'}</span>
+                        <td className="py-6 px-5">
+                          <span className="text-slate-700 tabular-nums font-bold text-base">{lead.date || '—'}</span>
                         </td>
                         
-                        <td className="py-5 px-4">
-                          <span className="bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md font-medium text-[10px] uppercase tracking-wider shadow-sm">
+                        <td className="py-6 px-5">
+                          <span className="bg-slate-200 text-slate-800 border border-slate-300 px-3.5 py-1.5 rounded-lg font-black text-xs uppercase tracking-widest shadow-sm">
                             {lead.source || '—'}
                           </span>
                         </td>
@@ -1065,13 +1070,13 @@ export default function LeadManager() {
                   })}
                 </tbody>
               </table>
-              <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl">
-                <span className="font-normal text-[12px] text-slate-500">
-                  Showing <strong className="text-slate-800 font-medium">{processedLeads.length}</strong> of <strong className="text-slate-800 font-medium">{leads.length}</strong> leads
-                  {processedLeads.length !== leads.length && <span className="text-purple-600 font-medium"> (filtered)</span>}
+              <div className="flex justify-between items-center px-8 py-6 bg-slate-100 border-t-2 border-slate-300 rounded-b-2xl">
+                <span className="font-bold text-sm text-slate-600">
+                  Showing <strong className="text-slate-900 font-black">{processedLeads.length}</strong> of <strong className="text-slate-900 font-black">{leads.length}</strong> leads
+                  {processedLeads.length !== leads.length && <span className="text-purple-700 font-black"> (filtered)</span>}
                 </span>
-                <span className="font-medium text-[11px] text-slate-500 uppercase tracking-widest">
-                  Total Value: <strong className="text-slate-900 text-[14px] ml-1.5 tracking-normal tabular-nums">₹{filteredValue.toLocaleString('en-IN')}</strong>
+                <span className="font-black text-sm text-slate-700 uppercase tracking-widest">
+                  Total Value: <strong className="text-emerald-700 text-xl ml-2.5 tracking-normal tabular-nums">₹{filteredValue.toLocaleString('en-IN')}</strong>
                 </span>
               </div>
             </>
