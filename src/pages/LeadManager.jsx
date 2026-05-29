@@ -19,6 +19,13 @@ const getLatestNotePreview = (notesStr) => {
   return text.length > 72 ? text.slice(0, 72) + '…' : text;
 };
 
+const getLatestNoteTimestamp = (notesStr) => {
+  const lines = parseNoteLines(notesStr);
+  if (!lines.length) return 0;
+  const { timestamp } = parseNoteEntry(lines[lines.length - 1]);
+  return timestamp ? new Date(timestamp).getTime() : 0;
+};
+
 // ── STATUS BADGE ───────────────────────────────────────────────────────────────
 const STATUS_STYLE = {
   'New':           'bg-slate-500/20 border-slate-400/40 text-slate-300',
@@ -214,8 +221,19 @@ export default function LeadManager() {
         const bv = String(b[sortConfig.key] ?? '').toLowerCase();
         return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
       });
+    } else {
+      result.sort((a, b) => {
+        const timeA = getLatestNoteTimestamp(a.notes);
+        const timeB = getLatestNoteTimestamp(b.notes);
+
+        if (timeA !== timeB) return timeB - timeA;
+
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+
+      });
     }
-    return r;
+        
+    return result;
   }, [leads, filters, sortConfig]);
 
   const filteredValue     = useMemo(() => processedLeads.reduce((s, l) => s + (Number(l.price) || 0), 0), [processedLeads]);
