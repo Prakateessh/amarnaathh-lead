@@ -32,14 +32,14 @@ const getLatestNoteTimestamp = (notesStr) => {
   return isNaN(time) ? 0 : time;
 };
 
-// ── BADGE COMPONENTS ───────────────────────────────────────────────────────────
+// ── BADGE COMPONENTS (LIGHT THEME) ───────────────────────────────────────────
 const STATUS_STYLE = {
-  'New':           'bg-slate-500/20 border-slate-400/40 text-slate-300',
-  'Contacted':     'bg-blue-500/20 border-blue-400/40 text-blue-300',
-  'Quoted / Demo': 'bg-amber-500/20 border-amber-400/40 text-amber-300',
-  'Negotiation':   'bg-purple-500/20 border-purple-400/40 text-purple-300',
-  'Closed - Won':  'bg-green-500/20 border-green-400/40 text-green-300',
-  'Closed - Lost': 'bg-red-500/20 border-red-400/40 text-red-300',
+  'New':           'bg-slate-100 border-slate-200 text-slate-700',
+  'Contacted':     'bg-blue-50 border-blue-200 text-blue-700',
+  'Quoted / Demo': 'bg-amber-50 border-amber-200 text-amber-700',
+  'Negotiation':   'bg-purple-50 border-purple-200 text-purple-700',
+  'Closed - Won':  'bg-emerald-50 border-emerald-200 text-emerald-700',
+  'Closed - Lost': 'bg-rose-50 border-rose-200 text-rose-700',
 };
 
 const StatusBadge = ({ status }) => (
@@ -50,9 +50,9 @@ const StatusBadge = ({ status }) => (
 
 const TempBadge = ({ temp }) => {
   const cfg = { Hot: '🔥 Hot', Warm: '🌡️ Warm', Cold: '❄️ Cold' };
-  const cls = temp === 'Hot' ? 'text-red-400 border-red-500/40 bg-red-500/10'
-            : temp === 'Warm' ? 'text-amber-400 border-amber-500/40 bg-amber-500/10'
-            : 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10';
+  const cls = temp === 'Hot' ? 'bg-rose-50 border-rose-200 text-rose-700'
+            : temp === 'Warm' ? 'bg-amber-50 border-amber-200 text-amber-700'
+            : 'bg-cyan-50 border-cyan-200 text-cyan-700';
   return (
     <span className={`px-2.5 py-1 rounded-full font-mono text-[10px] border whitespace-nowrap ${cls}`}>
       {cfg[temp] || '❄️ Cold'}
@@ -145,7 +145,6 @@ export default function LeadManager() {
   todayAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
   upcomingAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
 
-  // 🛠️ THE FIX: Combines the arrays so the Red Notification Dot knows they exist!
   const urgentAlerts = [...todayAlerts, ...upcomingAlerts]; 
 
   const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
@@ -170,7 +169,7 @@ export default function LeadManager() {
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)}
             className={`w-7 h-7 rounded-md font-mono text-xs transition-colors ${
-              currentPage === p ? 'bg-primary text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10 text-secondary hover:bg-white/20 hover:text-white'
+              currentPage === p ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
             }`}>
             {p}
           </button>
@@ -342,7 +341,7 @@ export default function LeadManager() {
   
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
-      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-primary' : 'text-white/20 hover:text-white/80'}`}>
+      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -382,44 +381,47 @@ export default function LeadManager() {
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans text-slate-800">
+      
+      {/* Soft Light Gradients */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-100/50 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-100/50 rounded-full blur-[120px] pointer-events-none" />
 
       {/* ════════════════════════════════════════════════════════════════════
           PROFILE MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {profileLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#080d1a] border border-white/15 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col overflow-hidden"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col overflow-hidden"
                style={{ maxHeight: '92vh' }}>
             
-            <div className="flex-shrink-0 flex justify-between items-start px-7 py-5 border-b border-white/10 bg-white/[0.01]">
-              <div className="flex items-start gap-4 flex-1 min-w-0">
+            {/* Header */}
+            <div className="flex-shrink-0 flex justify-between items-start px-8 py-6 border-b border-slate-100 bg-white">
+              <div className="flex items-start gap-5 flex-1 min-w-0">
                 <div className="min-w-0">
-                  <p className="text-secondary font-mono text-[9px] uppercase tracking-[0.2em] mb-1">Lead Profile</p>
-                  <h3 className="text-2xl font-bold text-white truncate">{editData.name || '—'}</h3>
+                  <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-1.5">Lead Profile</p>
+                  <h3 className="text-2xl font-bold text-slate-900 truncate">{editData.name || '—'}</h3>
                   {editData.company_name && (
-                    <p className="text-secondary text-sm mt-0.5">{editData.company_name}</p>
+                    <p className="text-slate-500 text-sm mt-0.5">{editData.company_name}</p>
                   )}
                 </div>
-                <div className="pt-5 flex-shrink-0">
+                <div className="pt-6 flex-shrink-0">
                   <StatusBadge status={editData.status} />
                 </div>
               </div>
-              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-secondary hover:text-red-400 transition-colors">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 hover:bg-slate-100 p-2 rounded-full">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-7 flex flex-col gap-8 min-w-0">
+            <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/30">
+              {/* LEFT: Edit Form */}
+              <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 min-w-0">
                 <section>
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                    <span className="w-3 h-px bg-white/20"></span> Contact Information
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Contact Information</p>
+                  <div className="grid grid-cols-2 gap-5">
                     {[
                       { label: 'Name',     field: 'name',         type: 'text' },
                       { label: 'Company',  field: 'company_name', type: 'text' },
@@ -427,69 +429,65 @@ export default function LeadManager() {
                       { label: 'Location', field: 'location',     type: 'text' },
                     ].map(({ label, field, type }) => (
                       <div key={field} className="flex flex-col gap-1.5">
-                        <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">{label}</label>
+                        <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">{label}</label>
                         <input type={type} value={editData[field] || ''}
                           onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors hover:bg-white/10" />
+                          className="bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow" />
                       </div>
                     ))}
                   </div>
                 </section>
 
                 <section>
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                    <span className="w-3 h-px bg-white/20"></span> Requirement
-                  </p>
+                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Requirement</p>
                   <textarea value={editData.requirement || ''} rows={3}
                     onChange={e => handleEditChange('requirement', e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary resize-none transition-colors hover:bg-white/10" />
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-shadow" />
                 </section>
 
                 <section>
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                    <span className="w-3 h-px bg-white/20"></span> Pipeline Details
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Pipeline Details</p>
+                  <div className="grid grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">Pipeline Stage</label>
+                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Pipeline Stage</label>
                       <select value={editData.status || 'New'} onChange={e => handleEditChange('status', e.target.value)}
-                        className="bg-navy border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-primary cursor-pointer hover:bg-white/5">
-                        {pipelineStages.map(s => <option key={s} className="bg-slate-900" value={s}>{s}</option>)}
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                        {pipelineStages.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">Temperature</label>
+                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Temperature</label>
                       <select value={editData.lead_temp || 'Cold'} onChange={e => handleEditChange('lead_temp', e.target.value)}
-                        className="bg-navy border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-primary cursor-pointer hover:bg-white/5">
-                        <option className="bg-slate-900" value="Cold">❄️ Cold</option>
-                        <option className="bg-slate-900" value="Warm">🌡️ Warm</option>
-                        <option className="bg-slate-900" value="Hot">🔥 Hot</option>
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                        <option value="Cold">❄️ Cold</option>
+                        <option value="Warm">🌡️ Warm</option>
+                        <option value="Hot">🔥 Hot</option>
                       </select>
                     </div>
                     {editData.status === 'Closed - Lost' && (
                       <div className="col-span-2 flex flex-col gap-1.5">
-                        <label className="font-mono text-[10px] text-red-400 uppercase tracking-wider">Lost Reason</label>
+                        <label className="font-medium text-[11px] text-rose-500 uppercase tracking-wider">Lost Reason</label>
                         <select value={editData.lost_reason || ''} onChange={e => handleEditChange('lost_reason', e.target.value)}
-                          className="bg-navy border border-red-500/40 rounded-lg px-3 py-2 text-red-300 font-mono text-sm focus:outline-none focus:border-red-400 cursor-pointer hover:bg-red-500/10">
-                          <option className="bg-slate-900 text-white" value="">— Select reason —</option>
-                          {lostReasons.map(r => <option key={r} className="bg-slate-900 text-white" value={r}>{r}</option>)}
+                          className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2.5 text-rose-700 text-sm focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 cursor-pointer">
+                          <option value="">— Select reason —</option>
+                          {lostReasons.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                       </div>
                     )}
                     <div className="flex flex-col gap-1.5">
-                      <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">Value (₹)</label>
-                      <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden focus-within:border-green-500 transition-colors hover:bg-white/10">
-                        <span className="px-3 text-green-500 font-mono text-sm">₹</span>
+                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Value (₹)</label>
+                      <div className="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-shadow">
+                        <span className="px-3 text-emerald-600 font-mono text-sm bg-slate-50 border-r border-slate-200 py-2.5">₹</span>
                         <input type="number" value={editData.price || ''} onChange={e => handleEditChange('price', e.target.value)}
-                          className="flex-1 bg-transparent py-2 pr-3 text-green-400 font-mono text-sm focus:outline-none" />
+                          className="flex-1 bg-transparent py-2.5 px-3 text-slate-800 font-mono text-sm focus:outline-none" />
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">Source</label>
+                      <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">Source</label>
                       <select value={editData.source || 'Website'} onChange={e => handleEditChange('source', e.target.value)}
-                        className="bg-navy border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-primary cursor-pointer hover:bg-white/5">
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
                         {['Website','YouTube','LinkedIn','Direct','Referral','Alibaba','IndiaMart','TradeIndia','Manual Entry'].map(s => (
-                          <option key={s} className="bg-slate-900 text-white" value={s}>{s}</option>
+                          <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
                     </div>
@@ -497,55 +495,54 @@ export default function LeadManager() {
                 </section>
 
                 <section>
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                    <span className="w-3 h-px bg-white/20"></span> Schedule
-                  </p>
-                  <div className="grid grid-cols-3 gap-4">
+                  <p className="font-semibold text-sm text-slate-800 mb-4 border-b border-slate-200 pb-2">Schedule</p>
+                  <div className="grid grid-cols-3 gap-5">
                     {[
                       { label: 'Lead Date',      field: 'date' },
                       { label: 'Tentative Call', field: 'tentative_call_date' },
                       { label: 'GMeet Date',     field: 'gmeet_date' },
                     ].map(({ label, field }) => (
                       <div key={field} className="flex flex-col gap-1.5">
-                        <label className="font-mono text-[10px] text-secondary uppercase tracking-wider">{label}</label>
+                        <label className="font-medium text-[11px] text-slate-500 uppercase tracking-wider">{label}</label>
                         <input type="date" value={editData[field] || ''} onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-primary transition-colors hover:bg-white/10 cursor-pointer" />
+                          className="bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer" />
                       </div>
                     ))}
                   </div>
                 </section>
               </div>
 
-              <div className="w-[420px] flex-shrink-0 flex flex-col border-l border-white/10 overflow-hidden bg-white/[0.02]">
-                <div className="flex-shrink-0 p-6 border-b border-white/10">
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3">Append Update</p>
+              {/* RIGHT: Notes Feed */}
+              <div className="w-[420px] flex-shrink-0 flex flex-col border-l border-slate-200 overflow-hidden bg-white">
+                <div className="flex-shrink-0 p-6 border-b border-slate-200 bg-slate-50/50">
+                  <p className="font-semibold text-sm text-slate-800 mb-3">Append Update</p>
                   <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
                     placeholder="Type update or interaction..."
-                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-primary resize-none transition-colors hover:bg-white/10"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-shadow"
                     style={{ height: '90px' }} />
                   <div className="flex gap-2 mt-3">
                     <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
-                      className="flex-1 min-w-0 bg-navy border border-white/10 rounded-lg px-2.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary truncate cursor-pointer">
-                      {users.map(u => <option key={u} value={u} className="bg-slate-900 text-white">{u}</option>)}
+                      className="flex-1 min-w-0 bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 truncate cursor-pointer">
+                      {users.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                     <button onClick={handleAppendNote} disabled={isAppending || !newNote.trim()}
-                      className="flex-shrink-0 bg-primary hover:bg-blue-500 disabled:bg-white/5 disabled:text-white/20 text-white font-mono text-xs uppercase tracking-wider px-5 py-2 rounded-lg transition-colors shadow-lg">
-                      {isAppending ? '…' : '+ Add'}
+                      className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors shadow-sm">
+                      {isAppending ? '…' : 'Add Note'}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-3">
-                  <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] flex items-center justify-between mb-1">
-                    <span>Activity Log</span>
-                    <span className="bg-white/10 px-2 py-0.5 rounded text-[9px]">
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm text-slate-800">Activity Log</span>
+                    <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full text-[10px] font-mono">
                       {parseNoteLines(profileLead.notes).length} entries
                     </span>
-                  </p>
+                  </div>
                   {parseNoteLines(profileLead.notes).length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-center opacity-60">
-                      <span className="text-3xl">📝</span>
-                      <span className="text-secondary font-mono text-xs">No notes recorded yet.</span>
+                      <span className="text-4xl text-slate-300">📝</span>
+                      <span className="text-slate-500 text-sm">No notes recorded yet.</span>
                     </div>
                   ) : (
                     [...parseNoteLines(profileLead.notes)].reverse().map((line, i) => {
@@ -553,19 +550,19 @@ export default function LeadManager() {
                       const isFirst = i === 0;
                       return (
                         <div key={i}
-                          className={`rounded-xl p-3.5 flex flex-col gap-2 border transition-all ${
-                            isFirst ? 'bg-primary/10 border-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.08)]' : 'bg-white/[0.03] border-white/[0.08]'
+                          className={`rounded-xl p-4 flex flex-col gap-2 border transition-all ${
+                            isFirst ? 'bg-blue-50/50 border-blue-200 shadow-sm' : 'bg-white border-slate-200 shadow-sm'
                           }`}>
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`font-mono text-[10px] font-bold truncate ${isFirst ? 'text-primary' : 'text-blue-300/80'}`}>
+                            <span className={`font-semibold text-sm truncate ${isFirst ? 'text-blue-700' : 'text-slate-700'}`}>
                               {user || 'Unknown'}
                             </span>
-                            <span className="text-secondary font-mono text-[9px] flex-shrink-0 opacity-80">
+                            <span className="text-slate-400 font-mono text-[10px] flex-shrink-0">
                               {timestamp || '—'}
                             </span>
                           </div>
-                          <p className={`text-sm leading-relaxed ${isFirst ? 'text-white' : 'text-white/80'}`}>{text}</p>
-                          {isFirst && <span className="font-mono text-[8px] text-primary/70 uppercase tracking-wider mt-1">↑ Most Recent</span>}
+                          <p className={`text-sm leading-relaxed ${isFirst ? 'text-slate-800' : 'text-slate-600'}`}>{text}</p>
+                          {isFirst && <span className="font-mono text-[9px] text-blue-500 uppercase tracking-wider mt-1 font-semibold">↑ Most Recent</span>}
                         </div>
                       );
                     })
@@ -574,25 +571,26 @@ export default function LeadManager() {
               </div>
             </div>
 
-            <div className="flex-shrink-0 flex items-center justify-between px-7 py-4 border-t border-white/10 bg-white/[0.01]">
-              <span className="font-mono text-[10px] text-white/20 tracking-wider">
+            {/* Footer */}
+            <div className="flex-shrink-0 flex items-center justify-between px-8 py-4 border-t border-slate-200 bg-slate-50">
+              <span className="font-mono text-[10px] text-slate-400 tracking-wider">
                 ID: {String(profileLead.id).slice(0, 8)}…
               </span>
               <div className="flex items-center gap-4">
                 {saveSuccess && (
-                  <span className="text-green-400 font-mono text-xs flex items-center gap-1.5 animate-pulse">
+                  <span className="text-emerald-600 font-medium text-sm flex items-center gap-1.5 animate-pulse bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     Saved successfully
                   </span>
                 )}
-                <button onClick={closeProfile} className="px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-secondary hover:text-white transition-colors">
+                <button onClick={closeProfile} className="px-5 py-2.5 font-medium text-sm text-slate-600 hover:text-slate-900 transition-colors">
                   Discard
                 </button>
                 <button onClick={handleSaveChanges} disabled={isSaving}
-                  className="px-8 py-2.5 bg-primary hover:bg-blue-500 disabled:bg-white/10 disabled:text-white/30 text-white font-mono text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                  {isSaving ? 'Saving…' : '💾 Save Changes'}
+                  className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-medium text-sm rounded-lg transition-colors shadow-md flex items-center gap-2">
+                  {isSaving ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -604,46 +602,46 @@ export default function LeadManager() {
           REMINDERS & CALENDAR MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {showReminders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#080d1a] border border-white/20 p-8 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 p-8 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
             
-            <div className="flex justify-between items-center border-b border-white/10 pb-5">
-              <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-5">
+              <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                 📅 Schedule & Reminders
               </h3>
-              <button onClick={() => setShowReminders(false)} className="text-secondary hover:text-red-400 transition-colors">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-white/10 pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-slate-200 pb-8">
               {/* LEFT COLUMN: Today & Overdue */}
-              <div className="flex flex-col gap-4 bg-red-500/5 border border-red-500/10 p-5 rounded-xl">
-                <h4 className="font-mono text-sm text-red-400 uppercase tracking-widest border-b border-red-500/20 pb-3 flex items-center gap-2">
+              <div className="flex flex-col gap-4 bg-rose-50/50 border border-rose-100 p-5 rounded-xl">
+                <h4 className="font-semibold text-sm text-rose-700 border-b border-rose-200 pb-3 flex items-center gap-2">
                   <span>⚠️ Today & Overdue</span>
-                  <span className="bg-red-500/20 text-red-300 px-2 py-0.5 rounded text-[10px]">{todayAlerts.length}</span>
+                  <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-[10px] font-mono">{todayAlerts.length}</span>
                 </h4>
                 
                 {currentTodayAlerts.length > 0 ? (
                   <div className="flex flex-col gap-3 min-h-[380px]">
                     {currentTodayAlerts.map((alert, index) => (
-                      <div key={index} className="bg-black/40 border border-red-500/30 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+                      <div key={index} className="bg-white border border-rose-200 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
                         <div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-purple-50 text-purple-600 border border-purple-200'}`}>
                               {alert.alertType}
                             </span>
-                            <span className="text-red-300 font-mono text-[10px] bg-red-500/10 px-2 py-0.5 rounded">
+                            <span className="text-rose-700 font-mono text-[10px] bg-rose-100 border border-rose-200 px-2 py-0.5 rounded">
                               {alert.alertDate}
                             </span>
                           </div>
-                          <p className="text-white font-medium text-base truncate">{alert.name}</p>
+                          <p className="text-slate-800 font-medium text-base truncate">{alert.name}</p>
                         </div>
-                        <div className="flex gap-2 w-full mt-1">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                        <div className="flex gap-2 w-full mt-2">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
                             ✓ Attended
                           </button>
                         </div>
@@ -655,38 +653,38 @@ export default function LeadManager() {
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center min-h-[150px]">
-                    <span className="text-green-400/70 font-mono text-xs tracking-widest uppercase">✅ Clear for today</span>
+                    <span className="text-emerald-600 font-medium text-sm">✅ Clear for today</span>
                   </div>
                 )}
               </div>
 
               {/* RIGHT COLUMN: Tomorrow & Upcoming */}
-              <div className="flex flex-col gap-4 bg-blue-500/5 border border-blue-500/10 p-5 rounded-xl">
-                <h4 className="font-mono text-sm text-blue-400 uppercase tracking-widest border-b border-blue-500/20 pb-3 flex items-center gap-2">
+              <div className="flex flex-col gap-4 bg-slate-50 border border-slate-200 p-5 rounded-xl">
+                <h4 className="font-semibold text-sm text-slate-700 border-b border-slate-200 pb-3 flex items-center gap-2">
                   <span>📅 Tomorrow & Upcoming</span>
-                  <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-[10px]">{upcomingAlerts.length}</span>
+                  <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-[10px] font-mono">{upcomingAlerts.length}</span>
                 </h4>
                 
                 {currentUpcomingAlerts.length > 0 ? (
                   <div className="flex flex-col gap-3 min-h-[380px]">
                     {currentUpcomingAlerts.map((alert, index) => (
-                      <div key={index} className="bg-black/40 border border-blue-500/20 p-4 rounded-xl flex flex-col justify-between gap-3">
+                      <div key={index} className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
                         <div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-purple-50 text-purple-600 border border-purple-200'}`}>
                               {alert.alertType}
                             </span>
-                            <span className="text-blue-300 font-mono text-[10px] bg-blue-500/10 px-2 py-0.5 rounded">
+                            <span className="text-slate-600 font-mono text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                               {alert.alertDate}
                             </span>
                           </div>
-                          <p className="text-white font-medium text-base truncate">{alert.name}</p>
+                          <p className="text-slate-800 font-medium text-base truncate">{alert.name}</p>
                         </div>
-                        <div className="flex gap-2 w-full mt-1">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                        <div className="flex gap-2 w-full mt-2">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-[11px] uppercase tracking-wider py-2 rounded-lg transition-colors shadow-sm">
                             ✓ Attended
                           </button>
                         </div>
@@ -698,34 +696,33 @@ export default function LeadManager() {
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center min-h-[150px]">
-                    <span className="text-secondary/50 font-mono text-xs tracking-widest uppercase">No upcoming alerts</span>
+                    <span className="text-slate-400 font-medium text-sm">No upcoming alerts</span>
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-5 bg-white/5 p-4 rounded-xl border border-white/10">
-                <h4 className="font-mono text-sm text-white uppercase tracking-widest">
+              <div className="flex justify-between items-center mb-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <h4 className="font-semibold text-sm text-slate-800 uppercase tracking-widest">
                   {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h4>
                 <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">{'<'}</button>
-                  <button onClick={() => setCurrentMonth(new Date())} className="px-4 font-mono text-xs bg-white/10 rounded-lg hover:bg-white/20 transition-colors">TODAY</button>
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">{'>'}</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-4 font-mono text-xs bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">{'>'}</button>
                 </div>
               </div>
               
               <div className="grid grid-cols-7 gap-3">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center font-mono text-[10px] uppercase text-secondary py-2">{d}</div>
+                  <div key={d} className="text-center font-medium text-[11px] uppercase text-slate-400 py-2">{d}</div>
                 ))}
                 {blanks.map(b => <div key={`blank-${b}`} className="p-2"></div>)}
                 {calendarDays.map(day => {
                   const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isToday = dateString === todayStr;
                   
-                  // Safe filtering
                   const dayCalls = leads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
                   const dayMeets = leads.filter(l => {
                     const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null;
@@ -733,16 +730,16 @@ export default function LeadManager() {
                   });
 
                   return (
-                    <div key={day} className={`min-h-[85px] p-2.5 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
-                      <span className={`font-mono text-xs ${isToday ? 'text-primary font-bold' : 'text-secondary'}`}>{day}</span>
+                    <div key={day} className={`min-h-[85px] p-2.5 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-blue-300 bg-blue-50 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                      <span className={`font-mono text-xs ${isToday ? 'text-blue-700 font-bold' : 'text-slate-500'}`}>{day}</span>
                       <div className="flex flex-col gap-1.5 w-full overflow-hidden">
                         {dayCalls.length > 0 && (
-                          <div className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-1 rounded truncate font-medium" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
+                          <div className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-1 rounded truncate font-medium" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
                             📞 {dayCalls.length} Call(s)
                           </div>
                         )}
                         {dayMeets.length > 0 && (
-                          <div className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-1 rounded truncate font-medium" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
+                          <div className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-1 rounded truncate font-medium" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
                             📹 {dayMeets.length} Meet(s)
                           </div>
                         )}
@@ -752,8 +749,8 @@ export default function LeadManager() {
                 })}
               </div>
               <div className="flex gap-6 mt-6 justify-center">
-                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Call Scheduled</span>
-                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span> GMeet Scheduled</span>
+                <span className="flex items-center gap-2 font-medium text-[11px] text-slate-500"><span className="w-3 h-3 rounded-full bg-blue-100 border border-blue-300"></span> Call Scheduled</span>
+                <span className="flex items-center gap-2 font-medium text-[11px] text-slate-500"><span className="w-3 h-3 rounded-full bg-purple-100 border border-purple-300"></span> GMeet Scheduled</span>
               </div>
             </div>
           </div>
@@ -765,53 +762,53 @@ export default function LeadManager() {
       ════════════════════════════════════════════════════════════════════ */}
       <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
         <button onClick={() => navigate('/database')}
-          className="text-secondary hover:text-primary font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2">
+          className="text-slate-500 hover:text-blue-600 font-semibold text-sm uppercase tracking-widest transition-colors flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Analytics
         </button>
         
-        <div className="flex gap-5 items-center">
+        <div className="flex gap-4 items-center">
           <button onClick={() => setShowReminders(true)}
-            className="relative text-secondary hover:text-white font-mono text-xs uppercase tracking-widest transition-colors flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg border border-white/10 hover:border-white/30"
+            className="relative text-slate-600 hover:text-blue-600 font-semibold text-sm uppercase tracking-widest transition-colors flex items-center gap-2 bg-white px-5 py-2.5 rounded-lg border border-slate-200 hover:border-blue-200 hover:bg-blue-50 shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
             Reminders
             {urgentAlerts.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500"></span>
               </span>
             )}
           </button>
           
-          <span className="font-mono text-xs text-purple-400 tracking-widest uppercase flex items-center gap-2 bg-purple-500/10 px-4 py-2 rounded-lg border border-purple-500/20">
+          <span className="font-semibold text-sm text-blue-700 tracking-widest uppercase flex items-center gap-2 bg-blue-50 px-5 py-2.5 rounded-lg border border-blue-200 shadow-sm">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             Lead Manager
           </span>
         </div>
       </div>
 
-      <div className="glass-modal w-full max-w-[95%] xl:max-w-[95%] p-8 relative z-10 flex flex-col gap-6 shadow-2xl">
+      <div className="bg-white w-full max-w-[95%] xl:max-w-[95%] p-8 relative z-10 flex flex-col gap-6 shadow-xl rounded-2xl border border-slate-200">
         {/* Header */}
-        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Lead Manager</h1>
-              <span className="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full font-mono text-[10px] tracking-widest uppercase shadow-[0_0_10px_rgba(59,130,246,0.1)]">
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lead Manager</h1>
+              <span className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full font-mono text-[10px] tracking-widest uppercase">
                 Click row to view profile
               </span>
             </div>
-            <p className="text-secondary text-sm mt-1">Sort, filter, and search leads. Table is view-only.</p>
+            <p className="text-slate-500 text-sm mt-1">Sort, filter, and search leads. Table is view-only.</p>
           </div>
           <div className="flex gap-3">
             <button onClick={handleDownloadExcel}
-              className="border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:bg-white/5">
-              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-sm tracking-widest uppercase px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+              <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
               Export{processedLeads.length !== leads.length ? ` (${processedLeads.length})` : ''}
             </button>
-            <button onClick={fetchLeads} className="text-secondary hover:text-primary hover:bg-primary/10 font-mono text-xs uppercase px-5 py-2.5 border border-white/10 rounded-lg transition-colors">
+            <button onClick={fetchLeads} className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-sm uppercase px-5 py-2.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
               Refresh
             </button>
           </div>
@@ -821,109 +818,109 @@ export default function LeadManager() {
         <div className="flex flex-col gap-3">
           <div className="flex gap-3 items-center">
             <div className="relative flex-1">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input type="text" value={filters.globalSearch}
                 onChange={e => setFilters(p => ({ ...p, globalSearch: e.target.value }))}
                 placeholder="Search name, company, requirement, phone, location..."
-                className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-8 py-3 text-white font-mono text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-secondary/40" />
+                className="w-full bg-white border border-slate-300 rounded-lg pl-10 pr-8 py-3 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow placeholder:text-slate-400 shadow-sm" />
               {filters.globalSearch && (
-                <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-white text-lg leading-none">×</button>
+                <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-lg leading-none">×</button>
               )}
             </div>
             <button onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-lg font-mono text-xs tracking-widest uppercase border transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm tracking-widest uppercase border transition-colors shadow-sm whitespace-nowrap ${
                 showFilters || activeFilterCount > 0
-                  ? 'bg-primary/20 border-primary/50 text-primary'
-                  : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/30 hover:bg-white/10'
+                  ? 'bg-blue-50 border-blue-200 text-blue-700'
+                  : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
               }`}>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
               Filters
               {activeFilterCount > 0 && (
-                <span className="bg-primary text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>
+                <span className="bg-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center ml-1">{activeFilterCount}</span>
               )}
             </button>
             {(activeFilterCount > 0 || sortConfig.key) && (
-              <button onClick={clearAllFilters} className="px-4 py-3 rounded-lg font-mono text-[10px] tracking-widest uppercase border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap">
+              <button onClick={clearAllFilters} className="px-5 py-3 rounded-lg font-semibold text-sm tracking-widest uppercase border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors whitespace-nowrap shadow-sm">
                 Clear All
               </button>
             )}
           </div>
           
           {showFilters && (
-            <div className="bg-black/20 border border-white/10 rounded-xl p-5 flex flex-col gap-6 mt-1">
-              <div className="flex flex-col gap-2.5">
-                <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Source</span>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col gap-6 mt-2 shadow-sm">
+              <div className="flex flex-col gap-3">
+                <span className="font-semibold text-[11px] text-slate-500 uppercase tracking-widest">Source</span>
                 <div className="flex flex-wrap gap-2">
                   {uniqueSources.map(src => (
                     <button key={src} onClick={() => toggleFilter('source', src)}
-                      className={`px-3.5 py-1.5 rounded-full font-mono text-xs border transition-all ${filters.source.includes(src) ? 'bg-primary/25 border-primary text-white' : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/30'}`}>
+                      className={`px-4 py-2 rounded-full font-medium text-xs border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-blue-600 border-blue-700 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
                       {filters.source.includes(src) && '✓ '}{src}
                     </button>
                   ))}
-                  {!uniqueSources.length && <span className="text-secondary font-mono text-xs">No sources loaded.</span>}
+                  {!uniqueSources.length && <span className="text-slate-400 font-medium text-sm">No sources loaded.</span>}
                 </div>
               </div>
-              <div className="flex flex-col gap-2.5">
-                <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Pipeline Stage</span>
+              <div className="flex flex-col gap-3">
+                <span className="font-semibold text-[11px] text-slate-500 uppercase tracking-widest">Pipeline Stage</span>
                 <div className="flex flex-wrap gap-2">
                   {pipelineStages.map(stage => {
-                    const on = stage === 'Closed - Won' ? 'bg-green-500/20 border-green-500 text-green-300'
-                             : stage === 'Closed - Lost' ? 'bg-red-500/20 border-red-500 text-red-300'
-                             : stage === 'Negotiation' ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                             : 'bg-primary/20 border-primary text-white';
+                    const on = stage === 'Closed - Won' ? 'bg-emerald-600 border-emerald-700 text-white'
+                             : stage === 'Closed - Lost' ? 'bg-rose-600 border-rose-700 text-white'
+                             : stage === 'Negotiation' ? 'bg-purple-600 border-purple-700 text-white'
+                             : 'bg-blue-600 border-blue-700 text-white';
                     return (
                       <button key={stage} onClick={() => toggleFilter('status', stage)}
-                        className={`px-3.5 py-1.5 rounded-full font-mono text-xs border transition-all ${filters.status.includes(stage) ? on : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/30'}`}>
+                        className={`px-4 py-2 rounded-full font-medium text-xs border transition-all shadow-sm ${filters.status.includes(stage) ? on : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
                         {filters.status.includes(stage) && '✓ '}{stage}
                       </button>
                     );
                   })}
                 </div>
               </div>
-              <div className="flex flex-col gap-2.5">
-                <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Temperature</span>
-                <div className="flex gap-2">
-                  {[{ val:'Hot', label:'🔥 Hot', on:'bg-red-500/20 border-red-500 text-red-300' },
-                    { val:'Warm', label:'🌡️ Warm', on:'bg-amber-500/20 border-amber-500 text-amber-300' },
-                    { val:'Cold', label:'❄️ Cold', on:'bg-cyan-500/20 border-cyan-500 text-cyan-300' }
+              <div className="flex flex-col gap-3">
+                <span className="font-semibold text-[11px] text-slate-500 uppercase tracking-widest">Temperature</span>
+                <div className="flex gap-3">
+                  {[{ val:'Hot', label:'🔥 Hot', on:'bg-rose-600 border-rose-700 text-white' },
+                    { val:'Warm', label:'🌡️ Warm', on:'bg-amber-500 border-amber-600 text-white' },
+                    { val:'Cold', label:'❄️ Cold', on:'bg-cyan-600 border-cyan-700 text-white' }
                   ].map(({ val, label, on }) => (
                     <button key={val} onClick={() => toggleFilter('lead_temp', val)}
-                      className={`px-4 py-1.5 rounded-full font-mono text-xs border transition-all ${filters.lead_temp.includes(val) ? on : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/30'}`}>
+                      className={`px-5 py-2 rounded-full font-medium text-sm border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}>
                       {filters.lead_temp.includes(val) && '✓ '}{label}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2.5">
-                  <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Date Range</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2 border-t border-slate-200 pt-6">
+                <div className="flex flex-col gap-3">
+                  <span className="font-semibold text-[11px] text-slate-500 uppercase tracking-widest">Date Range</span>
                   <div className="flex items-center gap-3">
                     <input type="date" value={filters.dateStart} onChange={e => setFilters(p => ({ ...p, dateStart: e.target.value }))}
-                      className="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-primary cursor-pointer" />
-                    <span className="text-secondary text-xs">→</span>
+                      className="flex-1 bg-white border border-slate-300 px-4 py-2.5 rounded-lg text-slate-800 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm" />
+                    <span className="text-slate-400 font-bold text-lg">→</span>
                     <input type="date" value={filters.dateEnd} onChange={e => setFilters(p => ({ ...p, dateEnd: e.target.value }))}
-                      className="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-primary cursor-pointer" />
+                      className="flex-1 bg-white border border-slate-300 px-4 py-2.5 rounded-lg text-slate-800 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm" />
                   </div>
                 </div>
-                <div className="flex flex-col gap-2.5">
-                  <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Value Range (₹)</span>
+                <div className="flex flex-col gap-3">
+                  <span className="font-semibold text-[11px] text-slate-500 uppercase tracking-widest">Value Range (₹)</span>
                   <div className="flex items-center gap-3">
                     <input type="number" value={filters.priceMin} onChange={e => setFilters(p => ({ ...p, priceMin: e.target.value }))}
-                      placeholder="Min" className="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-primary placeholder:text-secondary/30" />
-                    <span className="text-secondary text-xs">→</span>
+                      placeholder="Min" className="flex-1 bg-white border border-slate-300 px-4 py-2.5 rounded-lg text-slate-800 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 shadow-sm" />
+                    <span className="text-slate-400 font-bold text-lg">→</span>
                     <input type="number" value={filters.priceMax} onChange={e => setFilters(p => ({ ...p, priceMax: e.target.value }))}
-                      placeholder="Max" className="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-primary placeholder:text-secondary/30" />
+                      placeholder="Max" className="flex-1 bg-white border border-slate-300 px-4 py-2.5 rounded-lg text-slate-800 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 shadow-sm" />
                   </div>
                 </div>
               </div>
             </div>
           )}
           {activeChips.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-1">
+            <div className="flex flex-wrap gap-2 mt-2">
               {activeChips.map((chip, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 bg-primary/15 border border-primary/30 text-primary px-3 py-1 rounded-full font-mono text-xs">
+                <span key={i} className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm">
                   {chip.label}
-                  <button onClick={chip.remove} className="hover:text-white transition-colors text-base leading-none">×</button>
+                  <button onClick={chip.remove} className="hover:text-blue-900 transition-colors text-base leading-none">×</button>
                 </span>
               ))}
             </div>
@@ -931,96 +928,95 @@ export default function LeadManager() {
         </div>
 
         {/* ── DATA TABLE ────────────────────────────────────────────────────── */}
-        <div className="overflow-x-auto relative rounded-lg border border-white/10 bg-black/10">
+        <div className="overflow-x-auto relative rounded-xl border border-slate-200 bg-white shadow-sm">
           {selectedLeads.length > 0 && (
-            <div className="absolute top-0 left-0 w-full bg-red-900/95 backdrop-blur border-b border-red-500/50 p-3.5 flex justify-between items-center z-20 shadow-xl rounded-t-lg">
-              <span className="text-red-200 font-mono text-sm tracking-widest uppercase ml-4">{selectedLeads.length} Lead(s) Selected</span>
-              <button onClick={handleDeleteSelected} className="bg-red-600 hover:bg-red-500 text-white font-mono text-xs tracking-widest uppercase px-5 py-2 rounded-lg transition-colors shadow-[0_0_10px_rgba(220,38,38,0.3)]">
+            <div className="absolute top-0 left-0 w-full bg-rose-50 border-b border-rose-200 p-4 flex justify-between items-center z-20 shadow-md rounded-t-xl">
+              <span className="text-rose-700 font-semibold text-sm tracking-widest uppercase ml-4">{selectedLeads.length} Lead(s) Selected</span>
+              <button onClick={handleDeleteSelected} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs tracking-widest uppercase px-6 py-2.5 rounded-lg transition-colors shadow-sm">
                 🗑️ Delete Selected
               </button>
             </div>
           )}
           {isLoading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-4 text-secondary font-mono">
-              <svg className="w-8 h-8 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+            <div className="py-24 flex flex-col items-center justify-center gap-4 text-slate-500 font-medium tracking-wider">
+              <svg className="w-10 h-10 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               LOADING DATABASE...
             </div>
           ) : processedLeads.length === 0 ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-4">
-              <span className="text-5xl opacity-50">🔍</span>
-              <span className="text-secondary font-mono text-sm">No leads match your current filters.</span>
-              <button onClick={clearAllFilters} className="text-primary hover:text-blue-400 font-mono text-xs uppercase tracking-widest underline underline-offset-4 transition-colors">Clear filters</button>
+            <div className="py-24 flex flex-col items-center justify-center gap-4">
+              <span className="text-6xl opacity-30 text-slate-400">🔍</span>
+              <span className="text-slate-500 font-medium text-base">No leads match your current filters.</span>
+              <button onClick={clearAllFilters} className="text-blue-600 hover:text-blue-800 font-semibold text-sm uppercase tracking-widest underline underline-offset-4 transition-colors mt-2">Clear filters</button>
             </div>
           ) : (
             <>
               <table className="w-full text-left border-collapse min-w-[1680px]">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5 text-secondary font-mono text-xs uppercase tracking-wider">
-                    <th className="py-5 px-5 w-14">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                    <th className="py-5 px-6 w-14">
                       <input type="checkbox" onChange={handleSelectAll}
                         checked={selectedLeads.length === processedLeads.length && processedLeads.length > 0}
-                        className="w-4 h-4 accent-primary cursor-pointer" />
+                        className="w-4 h-4 accent-blue-600 cursor-pointer" />
                     </th>
-                    <th className="py-5 px-4 font-medium w-52"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
-                    <th className="py-5 px-4 font-medium w-64">Requirement</th>
-                    <th className="py-5 px-4 font-medium w-72">Latest Note</th>
-                    <th className="py-5 px-4 font-medium text-center w-40"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
-                    <th className="py-5 px-4 font-medium text-center w-32"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
-                    <th className="py-5 px-4 font-medium text-right w-40"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
-                    <th className="py-5 px-4 font-medium text-center w-48">Call / Meet</th>
-                    {/* Far right columns */}
-                    <th className="py-5 px-4 font-medium w-44"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
-                    <th className="py-5 px-4 font-medium w-36">Source</th>
+                    <th className="py-5 px-4 w-52"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
+                    <th className="py-5 px-4 w-64">Requirement</th>
+                    <th className="py-5 px-4 w-72">Latest Note</th>
+                    <th className="py-5 px-4 text-center w-40"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
+                    <th className="py-5 px-4 text-center w-32"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
+                    <th className="py-5 px-4 text-right w-40"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
+                    <th className="py-5 px-4 text-center w-48">Call / Meet</th>
+                    <th className="py-5 px-4 w-44"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
+                    <th className="py-5 px-4 w-36">Source</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-100">
                   {processedLeads.map(lead => {
                     const latestNote  = getLatestNotePreview(lead.notes);
                     const noteCount   = parseNoteLines(lead.notes).length;
                     return (
                       <tr key={lead.id}
                         onClick={() => openProfile(lead)}
-                        className="hover:bg-white/10 transition-colors cursor-pointer group">
+                        className="hover:bg-slate-50/80 transition-colors cursor-pointer group bg-white">
                         
-                        <td className="py-5 px-5" onClick={e => e.stopPropagation()}>
+                        <td className="py-5 px-6" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={selectedLeads.includes(lead.id)}
                             onChange={() => handleSelectLead(lead.id)}
-                            className="w-4 h-4 accent-primary cursor-pointer" />
+                            className="w-4 h-4 accent-blue-600 cursor-pointer" />
                         </td>
                         
                         <td className="py-5 px-4">
                           <div className="flex flex-col gap-1">
-                            <span className="text-white font-bold text-sm tracking-wide">{lead.name || '—'}</span>
-                            <span className="text-secondary text-xs">{lead.company_name || ''}</span>
-                            <span className="text-blue-300/70 text-[11px] font-mono mt-0.5">{lead.phone || ''}</span>
+                            <span className="text-slate-900 font-bold text-sm">{lead.name || '—'}</span>
+                            <span className="text-slate-500 text-xs font-medium">{lead.company_name || ''}</span>
+                            <span className="text-blue-600/80 text-[11px] font-mono mt-0.5">{lead.phone || ''}</span>
                           </div>
                         </td>
                         
                         <td className="py-5 px-4">
-                          <span className="text-white/90 text-sm line-clamp-2 leading-relaxed">
-                            {lead.requirement || <span className="text-white/20 italic">No requirement provided</span>}
+                          <span className="text-slate-700 text-sm line-clamp-2 leading-relaxed">
+                            {lead.requirement || <span className="text-slate-400 italic">No requirement provided</span>}
                           </span>
                         </td>
                         
                         <td className="py-5 px-4">
                           {latestNote ? (
-                            <div className="flex flex-col gap-1.5 bg-black/20 p-2.5 rounded border border-white/5">
-                              <p className="text-white/80 text-xs leading-relaxed line-clamp-2 italic">"{latestNote}"</p>
-                              {noteCount > 1 && <span className="text-primary/60 font-mono text-[9px] uppercase tracking-wider">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
+                            <div className="flex flex-col gap-1.5 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <p className="text-slate-700 text-xs leading-relaxed line-clamp-2 italic">"{latestNote}"</p>
+                              {noteCount > 1 && <span className="text-blue-600 font-semibold text-[9px] uppercase tracking-wider">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
-                            <span className="text-white/15 font-mono text-[10px] italic bg-black/20 px-3 py-1.5 rounded">No notes recorded</span>
+                            <span className="text-slate-400 font-medium text-xs italic bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">No notes recorded</span>
                           )}
                         </td>
                         
                         <td className="py-5 px-4 text-center">
-                          <div className="flex flex-col items-center gap-1.5">
+                          <div className="flex flex-col items-center gap-2">
                             <StatusBadge status={lead.status} />
                             {lead.status === 'Closed - Lost' && lead.lost_reason && (
-                              <span className="text-[9px] text-red-400/80 font-mono truncate max-w-[130px] px-1.5 py-0.5 bg-red-500/10 rounded border border-red-500/20" title={lead.lost_reason}>
+                              <span className="text-[9px] text-rose-600 font-mono truncate max-w-[130px] px-2 py-1 bg-rose-50 rounded-md border border-rose-200" title={lead.lost_reason}>
                                 ↳ {lead.lost_reason}
                               </span>
                             )}
@@ -1032,29 +1028,29 @@ export default function LeadManager() {
                         </td>
                         
                         <td className="py-5 px-4 text-right">
-                          <span className="text-green-400 font-mono text-[15px] font-bold">
-                            {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-white/20 font-sans text-sm">—</span>}
+                          <span className="text-emerald-600 font-mono text-[15px] font-bold">
+                            {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-sm">—</span>}
                           </span>
                         </td>
                         
                         <td className="py-5 px-4 text-center">
-                          <div className="flex flex-col gap-1.5 items-start bg-black/20 p-2 rounded border border-white/5 w-fit mx-auto min-w-[110px]">
-                            {lead.tentative_call_date && <span className="font-mono text-[10px] text-blue-300 flex items-center gap-1.5">📞 {lead.tentative_call_date}</span>}
-                            {lead.gmeet_date && <span className="font-mono text-[10px] text-purple-300 flex items-center gap-1.5">📹 {lead.gmeet_date}</span>}
-                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-white/20 font-mono text-[10px] mx-auto py-1 italic">Unscheduled</span>}
+                          <div className="flex flex-col gap-1.5 items-start bg-slate-50 p-2.5 rounded-lg border border-slate-200 w-fit mx-auto min-w-[110px]">
+                            {lead.tentative_call_date && <span className="font-mono text-[10px] text-blue-700 font-medium flex items-center gap-1.5">📞 {lead.tentative_call_date}</span>}
+                            {lead.gmeet_date && <span className="font-mono text-[10px] text-purple-700 font-medium flex items-center gap-1.5">📹 {lead.gmeet_date}</span>}
+                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-medium text-xs mx-auto py-0.5 italic">Unscheduled</span>}
                           </div>
                         </td>
                         
                         <td className="py-5 px-4">
-                          <span className="text-white/60 font-mono text-xs">{lead.date || '—'}</span>
+                          <span className="text-slate-500 font-mono text-xs">{lead.date || '—'}</span>
                         </td>
                         
                         <td className="py-5 px-4">
-                          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${
-                            lead.source === 'IndiaMart' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10' : 
-                            lead.source === 'TradeIndia' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' : 
-                            lead.source === 'Alibaba' ? 'text-orange-400 border-orange-500/30 bg-orange-500/10' : 
-                            'text-secondary border-white/20 bg-white/5'
+                          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${
+                            lead.source === 'IndiaMart' ? 'text-blue-700 border-blue-200 bg-blue-50' : 
+                            lead.source === 'TradeIndia' ? 'text-amber-700 border-amber-200 bg-amber-50' : 
+                            lead.source === 'Alibaba' ? 'text-orange-700 border-orange-200 bg-orange-50' : 
+                            'text-slate-600 border-slate-200 bg-slate-100'
                           }`}>
                             {lead.source || '—'}
                           </span>
@@ -1064,15 +1060,15 @@ export default function LeadManager() {
                   })}
                 </tbody>
               </table>
-              <div className="flex justify-between items-center px-6 py-4 bg-white/5 border-t border-white/10 rounded-b-lg">
-                <span className="font-mono text-xs text-secondary">
-                  Showing <strong className="text-white">{processedLeads.length}</strong> of <strong className="text-white">{leads.length}</strong> leads
-                  {processedLeads.length !== leads.length && <span className="text-primary"> (filtered)</span>}
-                  {sortConfig.key && <span> · sorted by <strong className="text-white">{sortConfig.key}</strong> {sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
-                  <span className="ml-4 text-white/30 hidden md:inline">· Scroll right to see Date / Source</span>
+              <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl">
+                <span className="font-medium text-xs text-slate-500">
+                  Showing <strong className="text-slate-800">{processedLeads.length}</strong> of <strong className="text-slate-800">{leads.length}</strong> leads
+                  {processedLeads.length !== leads.length && <span className="text-blue-600"> (filtered)</span>}
+                  {sortConfig.key && <span> · sorted by <strong className="text-slate-800">{sortConfig.key}</strong> {sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
+                  <span className="ml-4 text-slate-400 hidden md:inline">· Scroll right to see Date / Source</span>
                 </span>
-                <span className="font-mono text-xs text-secondary">
-                  Filtered Pipeline Value: <strong className="text-green-400 text-sm ml-1">₹{filteredValue.toLocaleString('en-IN')}</strong>
+                <span className="font-semibold text-xs text-slate-500 uppercase tracking-widest">
+                  Filtered Pipeline Value: <strong className="text-emerald-600 text-base ml-2 tracking-normal">₹{filteredValue.toLocaleString('en-IN')}</strong>
                 </span>
               </div>
             </>
