@@ -4,8 +4,7 @@ import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 
 // ── NOTE UTILITIES ─────────────────────────────────────────────────────────────
-const parseNoteLines = (notesStr) =>
-  notesStr?.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
+const parseNoteLines = (notesStr) => notesStr?.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
 
 const parseNoteEntry = (line) => {
   const m = line.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] \[(.*?)\] ([\s\S]+)$/);
@@ -19,6 +18,7 @@ const getLatestNotePreview = (notesStr) => {
   return text.length > 72 ? text.slice(0, 72) + '…' : text;
 };
 
+// Extremely important for default sorting
 const getLatestNoteTimestamp = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return 0;
@@ -26,7 +26,7 @@ const getLatestNoteTimestamp = (notesStr) => {
   return timestamp ? new Date(timestamp).getTime() : 0;
 };
 
-// ── STATUS BADGE ───────────────────────────────────────────────────────────────
+// ── BADGE COMPONENTS ───────────────────────────────────────────────────────────
 const STATUS_STYLE = {
   'New':           'bg-slate-500/20 border-slate-400/40 text-slate-300',
   'Contacted':     'bg-blue-500/20 border-blue-400/40 text-blue-300',
@@ -42,7 +42,6 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-// ── TEMP BADGE ─────────────────────────────────────────────────────────────────
 const TempBadge = ({ temp }) => {
   const cfg = { Hot: '🔥 Hot', Warm: '🌡️ Warm', Cold: '❄️ Cold' };
   const cls = temp === 'Hot' ? 'text-red-400 border-red-500/40 bg-red-500/10'
@@ -59,14 +58,16 @@ const TempBadge = ({ temp }) => {
 export default function LeadManager() {
   const navigate = useNavigate();
 
-  const [leads, setLeads]           = useState([]);
-  const [isLoading, setIsLoading]   = useState(true);
+  const [leads, setLeads] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Sort
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  // === REMINDERS & CALENDAR STATE ===
+  const [showReminders, setShowReminders] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Filters
+  // === SORT & FILTER STATE ===
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [filters, setFilters] = useState({
     globalSearch: '',
     source: [], status: [], lead_temp: [],
@@ -74,23 +75,22 @@ export default function LeadManager() {
     priceMin: '', priceMax: '',
   });
 
-  // Bulk selection
   const [selectedLeads, setSelectedLeads] = useState([]);
 
-  // ── PROFILE MODAL STATE ────────────────────────────────────────────────────
-  const [profileLead, setProfileLead] = useState(null); // immutable source
-  const [editData, setEditData]       = useState({});   // mutable working copy
-  const [isSaving, setIsSaving]       = useState(false);
+  // === PROFILE MODAL STATE ===
+  const [profileLead, setProfileLead] = useState(null); 
+  const [editData, setEditData] = useState({});   
+  const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Notes state (lives inside the profile modal)
-  const [newNote, setNewNote]       = useState('');
+  // Notes state
+  const [newNote, setNewNote] = useState('');
   const [isAppending, setIsAppending] = useState(false);
-  const [noteUser, setNoteUser]     = useState('Ritthik Kumar');
+  const [noteUser, setNoteUser] = useState('Ritthik Kumar');
 
-  const users          = ['Ritthik Kumar', 'Soundararajan B', 'Business Management Executive (BME)'];
+  const users = ['Ritthik Kumar', 'Soundararajan B', 'Business Management Executive (BME)'];
   const pipelineStages = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
-  const lostReasons    = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
+  const lostReasons = ['💸 Price too high', '🤝 Chose a Competitor', '👻 Ghosted / Unresponsive', '❌ Junk Lead', '🔧 Wrong Machine'];
 
   useEffect(() => { fetchLeads(); }, []);
 
@@ -100,10 +100,7 @@ export default function LeadManager() {
       const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const unique = data.filter((l, i, a) =>
-        i === a.findIndex(t =>
-          t.name?.toLowerCase() === l.name?.toLowerCase() &&
-          t.requirement?.toLowerCase() === l.requirement?.toLowerCase()
-        )
+        i === a.findIndex(t => t.name?.toLowerCase() === l.name?.toLowerCase() && t.requirement?.toLowerCase() === l.requirement?.toLowerCase())
       );
       setLeads(unique);
     } catch (err) {
@@ -112,6 +109,40 @@ export default function LeadManager() {
       setIsLoading(false);
     }
   };
+
+  // ── ALERTS & REMINDERS LOGIC ────────────────────────────────────────────────
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const urgentAlerts = [];
+  leads.forEach(lead => {
+    if (lead.tentative_call_date && !lead.call_attended && (lead.tentative_call_date === todayStr || lead.tentative_call_date === tomorrowStr)) {
+      urgentAlerts.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
+    }
+    if (lead.gmeet_date && !lead.gmeet_attended && (lead.gmeet_date === todayStr || lead.gmeet_date === tomorrowStr)) {
+      urgentAlerts.push({ ...lead, alertType: 'GMeet', alertDate: lead.gmeet_date });
+    }
+  });
+
+  const handleMarkAttended = async (leadId, alertType) => {
+    const columnToUpdate = alertType === 'Call' ? 'call_attended' : 'gmeet_attended';
+    try {
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, [columnToUpdate]: true } : l));
+      await supabase.from('leads').update({ [columnToUpdate]: true }).eq('id', leadId);
+    } catch (err) {
+      console.error("Failed to update status:", err.message);
+    }
+  };
+
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+  const daysInCurrentMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
+  const firstDayOffset = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
+  const blanks = Array.from({ length: firstDayOffset }, (_, i) => i);
+  const calendarDays = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   // ── PROFILE MODAL HANDLERS ─────────────────────────────────────────────────
   const openProfile = (lead) => {
@@ -154,6 +185,7 @@ export default function LeadManager() {
         tentative_call_date: editData.tentative_call_date || null,
         gmeet_date:          editData.gmeet_date     || null,
       };
+
       const { error } = await supabase.from('leads').update(payload).eq('id', editData.id);
       if (error) throw error;
 
@@ -176,9 +208,9 @@ export default function LeadManager() {
       const ts = `[${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}]`;
       const entry = `${ts} [${noteUser}] ${newNote.trim()}`;
       const updatedNotes = profileLead.notes ? `${profileLead.notes}\n${entry}` : entry;
-
+      
       await supabase.from('leads').update({ notes: updatedNotes }).eq('id', profileLead.id);
-
+      
       setProfileLead(prev => ({ ...prev, notes: updatedNotes }));
       setEditData(prev => ({ ...prev, notes: updatedNotes }));
       setLeads(prev => prev.map(l => l.id === profileLead.id ? { ...l, notes: updatedNotes } : l));
@@ -191,10 +223,7 @@ export default function LeadManager() {
   };
 
   // ── FILTER / SORT HELPERS ──────────────────────────────────────────────────
-  const uniqueSources = useMemo(() =>
-    [...new Set(leads.map(l => l.source).filter(Boolean))].sort(),
-    [leads]
-  );
+  const uniqueSources = useMemo(() => [...new Set(leads.map(l => l.source).filter(Boolean))].sort(), [leads]);
 
   const processedLeads = useMemo(() => {
     let r = [...leads];
@@ -222,29 +251,26 @@ export default function LeadManager() {
         return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
       });
     } else {
-      result.sort((a, b) => {
+      // 🚀 DEFAULT SORT: Bubbles leads with the newest notes to the top!
+      r.sort((a, b) => {
         const timeA = getLatestNoteTimestamp(a.notes);
         const timeB = getLatestNoteTimestamp(b.notes);
-
         if (timeA !== timeB) return timeB - timeA;
-
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-
       });
     }
-        
-    return result;
+
+    return r;
   }, [leads, filters, sortConfig]);
 
-  const filteredValue     = useMemo(() => processedLeads.reduce((s, l) => s + (Number(l.price) || 0), 0), [processedLeads]);
+  const filteredValue = useMemo(() => processedLeads.reduce((s, l) => s + (Number(l.price) || 0), 0), [processedLeads]);
   const activeFilterCount = useMemo(() => [
     filters.source.length > 0, filters.status.length > 0, filters.lead_temp.length > 0,
     !!filters.dateStart, !!filters.dateEnd, filters.priceMin !== '', filters.priceMax !== '',
   ].filter(Boolean).length, [filters]);
 
   const toggleFilter = (key, value) => setFilters(prev => ({
-    ...prev,
-    [key]: prev[key].includes(value) ? prev[key].filter(v => v !== value) : [...prev[key], value],
+    ...prev, [key]: prev[key].includes(value) ? prev[key].filter(v => v !== value) : [...prev[key], value],
   }));
 
   const clearAllFilters = () => {
@@ -265,7 +291,6 @@ export default function LeadManager() {
   }, [filters]);
 
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
-
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
       className={`ml-1 text-[11px] transition-all ${sortConfig.key === col ? 'text-primary' : 'text-white/25 hover:text-white/60'}`}>
@@ -274,8 +299,9 @@ export default function LeadManager() {
   );
 
   // ── BULK SELECT / DELETE ───────────────────────────────────────────────────
-  const handleSelectAll    = (e) => setSelectedLeads(e.target.checked ? processedLeads.map(l => l.id) : []);
-  const handleSelectLead   = (id) => setSelectedLeads(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const handleSelectAll = (e) => setSelectedLeads(e.target.checked ? processedLeads.map(l => l.id) : []);
+  const handleSelectLead = (id) => setSelectedLeads(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
   const handleDeleteSelected = async () => {
     if (!window.confirm(`⚠️ Permanently delete ${selectedLeads.length} lead(s)?`)) return;
     try {
@@ -315,9 +341,8 @@ export default function LeadManager() {
       ════════════════════════════════════════════════════════════════════ */}
       {profileLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#080d1a] border border-white/15 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col overflow-hidden"
+          <div className="bg-[#080d1a] border border-white/15 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col overflow-hidden"
                style={{ maxHeight: '92vh' }}>
-
             {/* ── Modal Header ── */}
             <div className="flex-shrink-0 flex justify-between items-start px-7 py-5 border-b border-white/10">
               <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -332,8 +357,7 @@ export default function LeadManager() {
                   <StatusBadge status={editData.status} />
                 </div>
               </div>
-              <button onClick={closeProfile}
-                className="flex-shrink-0 ml-4 mt-1 text-secondary hover:text-red-400 transition-colors">
+              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-secondary hover:text-red-400 transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -342,11 +366,9 @@ export default function LeadManager() {
 
             {/* ── Modal Body ── */}
             <div className="flex flex-1 min-h-0 overflow-hidden">
-
-              {/* LEFT: Edit Form ─────────────────────────────────────── */}
+              
+              {/* LEFT: Edit Form */}
               <div className="flex-1 overflow-y-auto p-7 flex flex-col gap-6 min-w-0">
-
-                {/* Contact Info */}
                 <section>
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <span className="w-3 h-px bg-white/20"></span> Contact Information
@@ -368,7 +390,6 @@ export default function LeadManager() {
                   </div>
                 </section>
 
-                {/* Requirement */}
                 <section>
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <span className="w-3 h-px bg-white/20"></span> Requirement
@@ -378,13 +399,11 @@ export default function LeadManager() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary resize-none transition-colors" />
                 </section>
 
-                {/* Pipeline Details */}
                 <section>
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <span className="w-3 h-px bg-white/20"></span> Pipeline Details
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] text-secondary uppercase tracking-wider">Pipeline Stage</label>
                       <select value={editData.status || 'New'} onChange={e => handleEditChange('status', e.target.value)}
@@ -392,7 +411,6 @@ export default function LeadManager() {
                         {pipelineStages.map(s => <option key={s} className="bg-slate-900" value={s}>{s}</option>)}
                       </select>
                     </div>
-
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] text-secondary uppercase tracking-wider">Temperature</label>
                       <select value={editData.lead_temp || 'Cold'} onChange={e => handleEditChange('lead_temp', e.target.value)}
@@ -402,7 +420,6 @@ export default function LeadManager() {
                         <option className="bg-slate-900" value="Hot">🔥 Hot</option>
                       </select>
                     </div>
-
                     {editData.status === 'Closed - Lost' && (
                       <div className="col-span-2 flex flex-col gap-1">
                         <label className="font-mono text-[9px] text-red-400 uppercase tracking-wider">Lost Reason</label>
@@ -413,7 +430,6 @@ export default function LeadManager() {
                         </select>
                       </div>
                     )}
-
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] text-secondary uppercase tracking-wider">Value (₹)</label>
                       <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden focus-within:border-green-500 transition-colors">
@@ -422,7 +438,6 @@ export default function LeadManager() {
                           className="flex-1 bg-transparent py-2 pr-3 text-green-400 font-mono text-sm focus:outline-none" />
                       </div>
                     </div>
-
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] text-secondary uppercase tracking-wider">Source</label>
                       <select value={editData.source || 'Website'} onChange={e => handleEditChange('source', e.target.value)}
@@ -435,7 +450,6 @@ export default function LeadManager() {
                   </div>
                 </section>
 
-                {/* Schedule */}
                 <section>
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <span className="w-3 h-px bg-white/20"></span> Schedule
@@ -456,10 +470,8 @@ export default function LeadManager() {
                 </section>
               </div>
 
-              {/* RIGHT: Notes Feed ───────────────────────────────────── */}
-              <div className="w-[360px] flex-shrink-0 flex flex-col border-l border-white/10 overflow-hidden bg-white/[0.02]">
-
-                {/* Add note area */}
+              {/* RIGHT: Notes Feed */}
+              <div className="w-[400px] flex-shrink-0 flex flex-col border-l border-white/10 overflow-hidden bg-white/[0.02]">
                 <div className="flex-shrink-0 p-5 border-b border-white/10">
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3">Add Note</p>
                   <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
@@ -478,7 +490,6 @@ export default function LeadManager() {
                   </div>
                 </div>
 
-                {/* Notes feed — REVERSE CHRONOLOGICAL (newest first) */}
                 <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] flex items-center justify-between">
                     <span>Activity Log</span>
@@ -486,7 +497,6 @@ export default function LeadManager() {
                       {parseNoteLines(profileLead.notes).length} entries
                     </span>
                   </p>
-
                   {parseNoteLines(profileLead.notes).length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-2 py-8 text-center">
                       <span className="text-2xl opacity-30">📋</span>
@@ -499,9 +509,7 @@ export default function LeadManager() {
                       return (
                         <div key={i}
                           className={`rounded-xl p-3 flex flex-col gap-1.5 border transition-all ${
-                            isFirst
-                              ? 'bg-primary/10 border-primary/25 shadow-[0_0_12px_rgba(99,102,241,0.08)]'
-                              : 'bg-white/[0.04] border-white/[0.07]'
+                            isFirst ? 'bg-primary/10 border-primary/25 shadow-[0_0_12px_rgba(99,102,241,0.08)]' : 'bg-white/[0.04] border-white/[0.07]'
                           }`}>
                           <div className="flex items-center justify-between gap-2">
                             <span className={`font-mono text-[10px] font-semibold truncate ${isFirst ? 'text-primary' : 'text-blue-400/80'}`}>
@@ -512,9 +520,7 @@ export default function LeadManager() {
                             </span>
                           </div>
                           <p className={`text-xs leading-relaxed ${isFirst ? 'text-white' : 'text-white/80'}`}>{text}</p>
-                          {isFirst && (
-                            <span className="font-mono text-[8px] text-primary/70 uppercase tracking-wider">↑ Most Recent</span>
-                          )}
+                          {isFirst && <span className="font-mono text-[8px] text-primary/70 uppercase tracking-wider">↑ Most Recent</span>}
                         </div>
                       );
                     })
@@ -537,22 +543,114 @@ export default function LeadManager() {
                     Saved successfully
                   </span>
                 )}
-                <button onClick={closeProfile}
-                  className="px-5 py-2 font-mono text-xs uppercase tracking-wider border border-white/15 text-secondary hover:text-white rounded-lg transition-colors">
+                <button onClick={closeProfile} className="px-5 py-2 font-mono text-xs uppercase tracking-wider border border-white/15 text-secondary hover:text-white rounded-lg transition-colors">
                   Discard & Close
                 </button>
                 <button onClick={handleSaveChanges} disabled={isSaving}
                   className="px-6 py-2 bg-primary hover:bg-blue-500 disabled:bg-white/10 disabled:text-white/30 text-white font-mono text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Saving…
-                    </>
-                  ) : '💾 Save Changes'}
+                  {isSaving ? 'Saving…' : '💾 Save Changes'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          REMINDERS & CALENDAR MODAL
+      ════════════════════════════════════════════════════════════════════ */}
+      {showReminders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#080d1a] border border-white/20 p-6 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
+            
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                📅 Schedule & Reminders
+              </h3>
+              <button onClick={() => setShowReminders(false)} className="text-secondary hover:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {urgentAlerts.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <h4 className="font-mono text-xs text-red-400 uppercase tracking-widest">⚠️ Urgent Action Required</h4>
+                {urgentAlerts.map((alert, index) => (
+                  <div key={index} className="bg-red-900/20 border border-red-500/30 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                          {alert.alertType}
+                        </span>
+                        <span className="text-white font-mono text-sm">
+                          {alert.alertDate === todayStr ? 'TODAY' : 'TOMORROW'}
+                        </span>
+                      </div>
+                      <p className="text-white font-medium text-lg">{alert.name}</p>
+                    </div>
+                    
+                    <div className="flex gap-3 w-full md:w-auto">
+                      <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded transition-colors">
+                        Will Attend Soon
+                      </button>
+                      <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded transition-colors shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                        ✓ Already Attended
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-green-900/10 border border-green-500/20 p-4 rounded-lg flex items-center justify-center">
+                <span className="text-green-400 font-mono text-sm tracking-widest uppercase">✅ No urgent calls or meetings today.</span>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-mono text-sm text-secondary uppercase tracking-widest">
+                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                </h4>
+                <div className="flex gap-2">
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-1 bg-white/5 rounded text-white hover:bg-white/20">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-2 font-mono text-xs bg-white/5 rounded text-white hover:bg-white/20">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-1 bg-white/5 rounded text-white hover:bg-white/20">{'>'}</button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="text-center font-mono text-xs text-secondary py-2">{d}</div>
+                ))}
+                {blanks.map(b => <div key={`blank-${b}`} className="p-2"></div>)}
+                {calendarDays.map(day => {
+                  const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const isToday = dateString === todayStr;
+                  const dayCalls = leads.filter(l => l.tentative_call_date === dateString);
+                  const dayMeets = leads.filter(l => l.gmeet_date === dateString);
+
+                  return (
+                    <div key={day} className={`min-h-[80px] p-2 border rounded flex flex-col items-start gap-1 transition-colors ${isToday ? 'border-primary bg-primary/10' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
+                      <span className={`font-mono text-xs ${isToday ? 'text-primary font-bold' : 'text-secondary'}`}>{day}</span>
+                      <div className="flex flex-col gap-1 w-full overflow-hidden">
+                        {dayCalls.length > 0 && (
+                          <div className="text-[9px] bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded truncate" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
+                            📞 {dayCalls.length} Call(s)
+                          </div>
+                        )}
+                        {dayMeets.length > 0 && (
+                          <div className="text-[9px] bg-purple-500/20 text-purple-300 px-1 py-0.5 rounded truncate" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
+                            📹 {dayMeets.length} Meet(s)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-4 mt-4 justify-center">
+                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2 h-2 rounded-full bg-blue-400"></span> Call Scheduled</span>
+                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2 h-2 rounded-full bg-purple-400"></span> GMeet Scheduled</span>
               </div>
             </div>
           </div>
@@ -566,23 +664,36 @@ export default function LeadManager() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Analytics
         </button>
-        <span className="font-mono text-xs text-purple-400 tracking-widest uppercase flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          Lead Manager
-        </span>
+        
+        {/* NEW: Reminders Button Next to Navigation */}
+        <div className="flex gap-4 items-center">
+          <button onClick={() => setShowReminders(true)}
+            className="relative text-secondary hover:text-white font-mono text-xs uppercase tracking-widest transition-colors flex items-center gap-2 bg-white/5 px-4 py-2 rounded border border-white/10 hover:border-white/30"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            Reminders
+            {urgentAlerts.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+            )}
+          </button>
+          
+          <span className="font-mono text-xs text-purple-400 tracking-widest uppercase flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            Lead Manager
+          </span>
+        </div>
       </div>
 
       <div className="glass-modal w-full max-w-[95%] xl:max-w-[95%] p-8 relative z-10 flex flex-col gap-6 shadow-2xl">
-
         {/* Header */}
         <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Lead Manager</h1>
-              <span className="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full font-mono text-[10px] tracking-widest uppercase">
-                Click row to open profile
-              </span>
-            </div>
+            <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Lead Manager</h1>
             <p className="text-secondary text-sm mt-1">Sort, filter, and search leads. Click any row to view and edit the full profile.</p>
           </div>
           <div className="flex gap-3">
@@ -612,15 +723,11 @@ export default function LeadManager() {
             </div>
             <button onClick={() => setShowFilters(v => !v)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-xs tracking-widest uppercase border transition-colors whitespace-nowrap ${
-                showFilters || activeFilterCount > 0
-                  ? 'bg-primary/20 border-primary/50 text-primary'
-                  : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/20'
+                showFilters || activeFilterCount > 0 ? 'bg-primary/20 border-primary/50 text-primary' : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/20'
               }`}>
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
               Filters
-              {activeFilterCount > 0 && (
-                <span className="bg-primary text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>
-              )}
+              {activeFilterCount > 0 && <span className="bg-primary text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>}
             </button>
             {(activeFilterCount > 0 || sortConfig.key) && (
               <button onClick={clearAllFilters} className="px-3 py-2.5 rounded-lg font-mono text-[10px] tracking-widest uppercase border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap">
@@ -628,10 +735,8 @@ export default function LeadManager() {
               </button>
             )}
           </div>
-
           {showFilters && (
             <div className="bg-black/20 border border-white/10 rounded-xl p-5 flex flex-col gap-5">
-
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Source</span>
                 <div className="flex flex-wrap gap-2">
@@ -644,7 +749,6 @@ export default function LeadManager() {
                   {!uniqueSources.length && <span className="text-secondary font-mono text-xs">No sources loaded yet.</span>}
                 </div>
               </div>
-
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Pipeline Stage</span>
                 <div className="flex flex-wrap gap-2">
@@ -662,7 +766,6 @@ export default function LeadManager() {
                   })}
                 </div>
               </div>
-
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Temperature</span>
                 <div className="flex gap-2">
@@ -677,7 +780,6 @@ export default function LeadManager() {
                   ))}
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="flex flex-col gap-2">
                   <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Date Range</span>
@@ -702,7 +804,6 @@ export default function LeadManager() {
               </div>
             </div>
           )}
-
           {activeChips.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {activeChips.map((chip, i) => (
@@ -717,14 +818,12 @@ export default function LeadManager() {
 
         {/* ── DATA TABLE ────────────────────────────────────────────────────── */}
         <div className="overflow-x-auto relative">
-
           {selectedLeads.length > 0 && (
             <div className="absolute top-0 left-0 w-full bg-red-900/90 backdrop-blur border-b border-red-500/50 p-3 flex justify-between items-center z-20 shadow-xl rounded-t">
               <span className="text-red-200 font-mono text-sm tracking-widest uppercase ml-4">{selectedLeads.length} Lead(s) Selected</span>
               <button onClick={handleDeleteSelected} className="bg-red-600 hover:bg-red-500 text-white font-mono text-xs tracking-widest uppercase px-4 py-2 rounded transition-colors">🗑️ Delete Selected</button>
             </div>
           )}
-
           {isLoading ? (
             <div className="py-16 flex items-center justify-center text-secondary font-mono">LOADING DATA...</div>
           ) : processedLeads.length === 0 ? (
@@ -735,10 +834,6 @@ export default function LeadManager() {
             </div>
           ) : (
             <>
-              {/*
-                COLUMN ORDER:
-                ☐ | Client Info | Requirement | Latest Note | Stage | Temp | Value (₹) | Call/Meet | ← scroll → Date / Source
-              */}
               <table className="w-full text-left border-collapse min-w-[1680px] mt-2">
                 <thead>
                   <tr className="border-b border-white/10 text-secondary font-mono text-xs uppercase tracking-wider">
@@ -747,25 +842,15 @@ export default function LeadManager() {
                         checked={selectedLeads.length === processedLeads.length && processedLeads.length > 0}
                         className="w-4 h-4 accent-primary cursor-pointer" />
                     </th>
-                    <th className="py-4 px-3 font-medium w-52">
-                      <span className="flex items-center">Client Info <SortBtn col="name" /></span>
-                    </th>
+                    <th className="py-4 px-3 font-medium w-52"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
                     <th className="py-4 px-3 font-medium w-64">Requirement</th>
                     <th className="py-4 px-3 font-medium w-72">Latest Note</th>
-                    <th className="py-4 px-3 font-medium text-center w-40">
-                      <span className="flex items-center justify-center">Stage <SortBtn col="status" /></span>
-                    </th>
-                    <th className="py-4 px-3 font-medium text-center w-28">
-                      <span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span>
-                    </th>
-                    <th className="py-4 px-3 font-medium text-right w-36">
-                      <span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span>
-                    </th>
+                    <th className="py-4 px-3 font-medium text-center w-40"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
+                    <th className="py-4 px-3 font-medium text-center w-28"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
+                    <th className="py-4 px-3 font-medium text-right w-36"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
                     <th className="py-4 px-3 font-medium text-center w-44">Call / Meet</th>
-                    {/* ↓↓ FAR RIGHT — requires horizontal scroll ↓↓ */}
-                    <th className="py-4 px-3 font-medium w-44">
-                      <span className="flex items-center">Date <SortBtn col="date" /></span>
-                    </th>
+                    {/* Far right columns */}
+                    <th className="py-4 px-3 font-medium w-44"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
                     <th className="py-4 px-3 font-medium w-36">Source</th>
                   </tr>
                 </thead>
@@ -777,15 +862,11 @@ export default function LeadManager() {
                       <tr key={lead.id}
                         onClick={() => openProfile(lead)}
                         className="hover:bg-white/[0.06] transition-colors cursor-pointer group">
-
-                        {/* Checkbox — stops propagation so click doesn't open modal */}
                         <td className="py-4 px-4" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={selectedLeads.includes(lead.id)}
                             onChange={() => handleSelectLead(lead.id)}
                             className="w-4 h-4 accent-primary cursor-pointer" />
                         </td>
-
-                        {/* Client Info */}
                         <td className="py-4 px-3">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-white font-medium text-sm">{lead.name || '—'}</span>
@@ -793,93 +874,53 @@ export default function LeadManager() {
                             <span className="text-secondary/70 text-xs font-mono">{lead.phone || ''}</span>
                           </div>
                         </td>
-
-                        {/* Requirement */}
                         <td className="py-4 px-3">
                           <span className="text-white text-sm line-clamp-2 leading-relaxed">
                             {lead.requirement || <span className="text-white/20 italic">No requirement</span>}
                           </span>
                         </td>
-
-                        {/* Latest Note — NEW COLUMN */}
                         <td className="py-4 px-3">
                           {latestNote ? (
                             <div className="flex flex-col gap-1">
                               <p className="text-white/75 text-xs leading-relaxed line-clamp-2">{latestNote}</p>
-                              {noteCount > 1 && (
-                                <span className="text-secondary font-mono text-[9px]">+{noteCount - 1} more entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>
-                              )}
+                              {noteCount > 1 && <span className="text-secondary font-mono text-[9px]">+{noteCount - 1} more entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
                             <span className="text-white/15 font-mono text-[10px] italic">No notes</span>
                           )}
                         </td>
-
-                        {/* Stage */}
                         <td className="py-4 px-3 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <StatusBadge status={lead.status} />
                             {lead.status === 'Closed - Lost' && lead.lost_reason && (
-                              <span className="text-[9px] text-red-400/70 font-mono truncate max-w-[130px]" title={lead.lost_reason}>
-                                ↳ {lead.lost_reason}
-                              </span>
+                              <span className="text-[9px] text-red-400/70 font-mono truncate max-w-[130px]" title={lead.lost_reason}>↳ {lead.lost_reason}</span>
                             )}
                           </div>
                         </td>
-
-                        {/* Temp */}
-                        <td className="py-4 px-3 text-center">
-                          <TempBadge temp={lead.lead_temp} />
-                        </td>
-
-                        {/* Value */}
+                        <td className="py-4 px-3 text-center"><TempBadge temp={lead.lead_temp} /></td>
                         <td className="py-4 px-3 text-right">
                           <span className="text-green-400 font-mono text-sm font-medium">
                             {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-white/20">—</span>}
                           </span>
                         </td>
-
-                        {/* Call / Meet */}
                         <td className="py-4 px-3 text-center">
                           <div className="flex flex-col gap-1 items-start">
-                            {lead.tentative_call_date && (
-                              <span className="font-mono text-[10px] text-blue-300/80 flex items-center gap-1">
-                                📞 {lead.tentative_call_date}
-                              </span>
-                            )}
-                            {lead.gmeet_date && (
-                              <span className="font-mono text-[10px] text-purple-300/80 flex items-center gap-1">
-                                📹 {lead.gmeet_date}
-                              </span>
-                            )}
-                            {!lead.tentative_call_date && !lead.gmeet_date && (
-                              <span className="text-white/15 font-mono text-[10px]">—</span>
-                            )}
+                            {lead.tentative_call_date && <span className="font-mono text-[10px] text-blue-300/80 flex items-center gap-1">📞 {lead.tentative_call_date}</span>}
+                            {lead.gmeet_date && <span className="font-mono text-[10px] text-purple-300/80 flex items-center gap-1">📹 {lead.gmeet_date}</span>}
+                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-white/15 font-mono text-[10px]">—</span>}
                           </div>
                         </td>
-
-                        {/* Date — far right (scrollable) */}
-                        <td className="py-4 px-3">
-                          <span className="text-white/60 font-mono text-xs">{lead.date || '—'}</span>
-                        </td>
-
-                        {/* Source — far right */}
+                        <td className="py-4 px-3"><span className="text-white/60 font-mono text-xs">{lead.date || '—'}</span></td>
                         <td className="py-4 px-3">
                           <span className={`font-mono text-[10px] uppercase tracking-wider ${
-                            lead.source === 'IndiaMart'  ? 'text-blue-400'   :
-                            lead.source === 'TradeIndia' ? 'text-amber-400'  :
-                            lead.source === 'Alibaba'    ? 'text-orange-400' : 'text-secondary'
-                          }`}>
-                            {lead.source || '—'}
-                          </span>
+                            lead.source === 'IndiaMart' ? 'text-blue-400' : lead.source === 'TradeIndia' ? 'text-amber-400' : lead.source === 'Alibaba' ? 'text-orange-400' : 'text-secondary'
+                          }`}>{lead.source || '—'}</span>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-
-              {/* Footer */}
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
                 <span className="font-mono text-xs text-secondary">
                   Showing <strong className="text-white">{processedLeads.length}</strong> of <strong className="text-white">{leads.length}</strong> leads
