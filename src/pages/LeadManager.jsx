@@ -42,12 +42,12 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// ── STRIKING VIBRANT BADGES ───────────────────────────────────────────
+// ── STRIKING SEMANTIC BADGES ───────────────────────────────────────────
 const STATUS_STYLE = {
   'New':           'bg-slate-500 text-white shadow-sm',
   'Contacted':     'bg-blue-500 text-white shadow-sm ring-1 ring-blue-600/20',
   'Quoted / Demo': 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-600/20',
-  'Negotiation':   'bg-purple-500 text-white shadow-sm ring-1 ring-purple-600/20',
+  'Negotiation':   'bg-purple-600 text-white shadow-sm ring-1 ring-purple-600/20',
   'Closed - Won':  'bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-600/20',
   'Closed - Lost': 'bg-rose-500 text-white shadow-sm ring-1 ring-rose-600/20',
 };
@@ -178,8 +178,8 @@ export default function LeadManager() {
       <div className="flex gap-2 justify-center mt-3">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)}
-            className={`w-8 h-8 rounded-md font-mono text-sm transition-colors ${
-              currentPage === p ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
+            className={`w-8 h-8 rounded-md font-mono text-sm transition-all duration-300 ${
+              currentPage === p ? 'bg-purple-900 text-white shadow-[0_0_10px_rgba(235,167,255,0.5)] ring-2 ring-[#EBA7FF]/50' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-[#EBA7FF]/20 hover:text-purple-900'
             }`}>
             {p}
           </button>
@@ -351,7 +351,7 @@ export default function LeadManager() {
   
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
-      className={`ml-1.5 text-xs transition-all hover:scale-110 ${sortConfig.key === col ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-purple-900' : 'text-slate-400 hover:text-slate-600'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -393,22 +393,22 @@ export default function LeadManager() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans text-slate-800">
       
-      {/* Soft Light Gradients for the Background */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-100/60 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-emerald-50/60 rounded-full blur-[120px] pointer-events-none" />
+      {/* Heliotrope & Purple Glow Backgrounds */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/40 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-300/30 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ════════════════════════════════════════════════════════════════════
           PROFILE MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {profileLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col overflow-hidden"
                style={{ maxHeight: '92vh' }}>
             
             <div className="flex-shrink-0 flex justify-between items-start px-8 py-6 border-b border-slate-200 bg-slate-50/50">
               <div className="flex items-start gap-5 flex-1 min-w-0">
                 <div className="min-w-0">
-                  <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-1.5">Lead Profile</p>
+                  <p className="text-purple-900/60 font-bold text-xs uppercase tracking-widest mb-1.5">Lead Profile</p>
                   <h3 className="text-3xl font-black text-slate-900 truncate">{editData.name || '—'}</h3>
                   {editData.company_name && (
                     <p className="text-slate-600 text-base mt-1 font-medium">{editData.company_name}</p>
@@ -418,7 +418,7 @@ export default function LeadManager() {
                   <StatusBadge status={editData.status} />
                 </div>
               </div>
-              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-slate-400 hover:text-slate-700 transition-colors bg-white border border-slate-200 hover:bg-slate-100 p-2.5 rounded-full shadow-sm">
+              <button onClick={closeProfile} className="flex-shrink-0 ml-4 mt-1 text-slate-400 hover:text-purple-900 transition-colors bg-white border border-slate-200 hover:bg-[#EBA7FF]/20 p-2.5 rounded-full shadow-sm">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -441,7 +441,7 @@ export default function LeadManager() {
                         <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">{label}</label>
                         <input type={type} value={editData[field] || ''}
                           onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow shadow-sm font-medium" />
+                          className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] transition-shadow shadow-sm font-medium" />
                       </div>
                     ))}
                   </div>
@@ -451,7 +451,7 @@ export default function LeadManager() {
                   <p className="font-bold text-base text-slate-800 mb-4 border-b border-slate-200 pb-2">Requirement</p>
                   <textarea value={editData.requirement || ''} rows={3}
                     onChange={e => handleEditChange('requirement', e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-shadow shadow-sm font-medium" />
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm font-medium" />
                 </section>
 
                 <section>
@@ -460,14 +460,14 @@ export default function LeadManager() {
                     <div className="flex flex-col gap-2">
                       <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">Pipeline Stage</label>
                       <select value={editData.status || 'New'} onChange={e => handleEditChange('status', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         {pipelineStages.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">Temperature</label>
                       <select value={editData.lead_temp || 'Cold'} onChange={e => handleEditChange('lead_temp', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         <option value="Cold">❄️ Cold</option>
                         <option value="Warm">🌡️ Warm</option>
                         <option value="Hot">🔥 Hot</option>
@@ -485,7 +485,7 @@ export default function LeadManager() {
                     )}
                     <div className="flex flex-col gap-2">
                       <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">Value (₹)</label>
-                      <div className="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-shadow shadow-sm">
+                      <div className="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:border-purple-600 focus-within:ring-1 focus-within:ring-[#EBA7FF] transition-shadow shadow-sm">
                         <span className="px-4 text-emerald-700 font-mono font-bold text-[15px] bg-slate-50 border-r border-slate-200 py-3">₹</span>
                         <input type="number" value={editData.price || ''} onChange={e => handleEditChange('price', e.target.value)}
                           className="flex-1 bg-transparent py-3 px-3 text-slate-900 font-mono font-bold text-[15px] focus:outline-none" />
@@ -494,7 +494,7 @@ export default function LeadManager() {
                     <div className="flex flex-col gap-2">
                       <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">Source</label>
                       <select value={editData.source || 'Website'} onChange={e => handleEditChange('source', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm">
+                        className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
                         {['Website','YouTube','LinkedIn','Direct','Referral','Alibaba','IndiaMart','TradeIndia','Manual Entry'].map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -514,7 +514,7 @@ export default function LeadManager() {
                       <div key={field} className="flex flex-col gap-2">
                         <label className="font-bold text-xs text-slate-500 uppercase tracking-wider">{label}</label>
                         <input type="date" value={editData[field] || ''} onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-mono font-bold text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer shadow-sm" />
+                          className="bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 font-mono font-bold text-sm focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] transition-shadow cursor-pointer shadow-sm" />
                       </div>
                     ))}
                   </div>
@@ -527,24 +527,24 @@ export default function LeadManager() {
                   <p className="font-bold text-base text-slate-800 mb-3">Append Update</p>
                   <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
                     placeholder="Type update or interaction..."
-                    className="w-full bg-white border border-slate-300 rounded-lg p-4 text-slate-900 font-medium text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-shadow shadow-sm"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-4 text-slate-900 font-medium text-[15px] focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm"
                     style={{ height: '110px' }} />
                   <div className="flex gap-3 mt-4">
                     <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
-                      className="flex-1 min-w-0 bg-white border border-slate-300 rounded-lg px-3 py-3 text-slate-800 font-bold text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 truncate cursor-pointer shadow-sm">
+                      className="flex-1 min-w-0 bg-white border border-slate-300 rounded-lg px-3 py-3 text-slate-800 font-bold text-sm focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-[#EBA7FF] truncate cursor-pointer shadow-sm">
                       {users.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                     <button onClick={handleAppendNote} disabled={isAppending || !newNote.trim()}
-                      className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold text-[15px] px-6 py-3 rounded-lg transition-colors shadow-sm">
+                      className="flex-shrink-0 bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold text-[15px] px-6 py-3 rounded-lg transition-all duration-300 shadow-md">
                       {isAppending ? '…' : 'Add Note'}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-[#EBA7FF]/5">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-base text-slate-800">Activity Log</span>
-                    <span className="bg-slate-200 text-slate-600 border border-slate-300 px-3 py-1 rounded-full text-[11px] font-mono font-bold">
+                    <span className="bg-white text-purple-900 border border-[#EBA7FF]/50 px-3 py-1 rounded-full text-[11px] font-mono font-bold">
                       {parseNoteLines(profileLead.notes).length} entries
                     </span>
                   </div>
@@ -560,18 +560,18 @@ export default function LeadManager() {
                       return (
                         <div key={i}
                           className={`rounded-xl p-5 flex flex-col gap-3 border transition-all ${
-                            isFirst ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 shadow-sm'
+                            isFirst ? 'bg-white border-[#EBA7FF] shadow-[0_0_15px_rgba(235,167,255,0.2)]' : 'bg-white border-slate-200 shadow-sm'
                           }`}>
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`font-bold text-[15px] truncate ${isFirst ? 'text-blue-800' : 'text-slate-800'}`}>
+                            <span className={`font-bold text-[15px] truncate ${isFirst ? 'text-purple-900' : 'text-slate-800'}`}>
                               {user || 'Unknown'}
                             </span>
                             <span className="text-slate-500 font-mono text-[11px] font-medium flex-shrink-0">
                               {timestamp || '—'}
                             </span>
                           </div>
-                          <p className={`text-[15px] leading-relaxed font-medium ${isFirst ? 'text-blue-900' : 'text-slate-700'}`}>{text}</p>
-                          {isFirst && <span className="font-mono text-[11px] text-blue-600 uppercase tracking-widest mt-1 font-bold">↑ Most Recent</span>}
+                          <p className={`text-[15px] leading-relaxed font-medium ${isFirst ? 'text-slate-900' : 'text-slate-700'}`}>{text}</p>
+                          {isFirst && <span className="font-mono text-[11px] text-[#EBA7FF] uppercase tracking-widest mt-1 font-bold">↑ Most Recent</span>}
                         </div>
                       );
                     })
@@ -597,7 +597,7 @@ export default function LeadManager() {
                   Discard
                 </button>
                 <button onClick={handleSaveChanges} disabled={isSaving}
-                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold text-[15px] rounded-lg transition-colors shadow-sm flex items-center gap-2">
+                  className="px-8 py-3 bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold text-[15px] rounded-lg transition-all duration-300 shadow-md flex items-center gap-2 hover:shadow-[0_0_15px_rgba(235,167,255,0.6)]">
                   {isSaving ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
@@ -610,14 +610,14 @@ export default function LeadManager() {
           REMINDERS & CALENDAR MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {showReminders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 p-8 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
             
             <div className="flex justify-between items-center border-b border-slate-200 pb-5">
-              <h3 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+              <h3 className="text-3xl font-black text-purple-900 flex items-center gap-3">
                 📅 Schedule & Reminders
               </h3>
-              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-3 rounded-full transition-colors border border-slate-200 shadow-sm">
+              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-3 rounded-full transition-colors border border-slate-200 shadow-sm">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -632,10 +632,10 @@ export default function LeadManager() {
                 {currentTodayAlerts.length > 0 ? (
                   <div className="flex flex-col gap-4 min-h-[380px]">
                     {currentTodayAlerts.map((alert, index) => (
-                      <div key={index} className="bg-white border border-rose-300 p-5 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
+                      <div key={index} className="bg-white border border-rose-300 p-5 rounded-xl flex flex-col justify-between gap-3 shadow-md">
                         <div>
                           <div className="flex items-center gap-3 mb-2.5">
-                            <span className={`px-3 py-1 rounded-md font-mono text-[11px] font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'}`}>
+                            <span className={`px-3 py-1 rounded-md font-mono text-[11px] font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
                               {alert.alertType}
                             </span>
                             <span className="text-rose-800 font-mono font-bold text-xs bg-rose-100 border border-rose-300 px-3 py-1 rounded-md">
@@ -645,10 +645,10 @@ export default function LeadManager() {
                           <p className="text-slate-900 font-bold text-lg truncate">{alert.name}</p>
                         </div>
                         <div className="flex gap-3 w-full mt-2">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-md">
                             ✓ Attended
                           </button>
                         </div>
@@ -665,32 +665,32 @@ export default function LeadManager() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-4 bg-slate-50 border border-slate-200 p-6 rounded-xl shadow-sm">
-                <h4 className="font-bold text-base text-slate-700 border-b border-slate-200 pb-3 flex items-center gap-2">
+              <div className="flex flex-col gap-4 bg-purple-50/50 border border-purple-100 p-6 rounded-xl shadow-sm">
+                <h4 className="font-bold text-base text-purple-900 border-b border-purple-200 pb-3 flex items-center gap-2">
                   <span>📅 Tomorrow & Upcoming</span>
-                  <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-mono">{upcomingAlerts.length}</span>
+                  <span className="bg-[#EBA7FF]/30 text-purple-900 px-3 py-1 rounded-full text-xs font-mono">{upcomingAlerts.length}</span>
                 </h4>
                 
                 {currentUpcomingAlerts.length > 0 ? (
                   <div className="flex flex-col gap-4 min-h-[380px]">
                     {currentUpcomingAlerts.map((alert, index) => (
-                      <div key={index} className="bg-white border border-slate-200 p-5 rounded-xl flex flex-col justify-between gap-3 shadow-sm">
+                      <div key={index} className="bg-white border border-purple-200 p-5 rounded-xl flex flex-col justify-between gap-3 shadow-md">
                         <div>
                           <div className="flex items-center gap-3 mb-2.5">
-                            <span className={`px-3 py-1 rounded-md font-mono text-[11px] font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'}`}>
+                            <span className={`px-3 py-1 rounded-md font-mono text-[11px] font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
                               {alert.alertType}
                             </span>
-                            <span className="text-slate-700 font-mono font-bold text-xs bg-slate-100 border border-slate-300 px-3 py-1 rounded-md">
+                            <span className="text-purple-800 font-mono font-bold text-xs bg-purple-100 border border-purple-300 px-3 py-1 rounded-md">
                               {alert.alertDate}
                             </span>
                           </div>
                           <p className="text-slate-900 font-bold text-lg truncate">{alert.name}</p>
                         </div>
                         <div className="flex gap-3 w-full mt-2">
-                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-[#EBA7FF]/20 border border-slate-300 text-slate-700 hover:text-purple-900 font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
                             Dismiss
                           </button>
-                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-sm">
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg transition-colors shadow-md">
                             ✓ Attended
                           </button>
                         </div>
@@ -714,9 +714,9 @@ export default function LeadManager() {
                   {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h4>
                 <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-3 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 transition-colors border border-slate-300 shadow-sm">{'<'}</button>
-                  <button onClick={() => setCurrentMonth(new Date())} className="px-5 font-mono text-sm font-bold bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-300 shadow-sm">TODAY</button>
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-3 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 transition-colors border border-slate-300 shadow-sm">{'>'}</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-3 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-5 font-mono text-sm font-bold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-3 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm">{'>'}</button>
                 </div>
               </div>
               
@@ -736,8 +736,8 @@ export default function LeadManager() {
                   });
 
                   return (
-                    <div key={day} className={`min-h-[100px] p-3 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-blue-400 bg-blue-50 shadow-md ring-2 ring-blue-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
-                      <span className={`font-mono text-sm ${isToday ? 'text-blue-700 font-black' : 'text-slate-500 font-bold'}`}>{day}</span>
+                    <div key={day} className={`min-h-[100px] p-3 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-[#EBA7FF] bg-[#EBA7FF]/10 shadow-[0_0_15px_rgba(235,167,255,0.3)] ring-2 ring-[#EBA7FF]/50' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
+                      <span className={`font-mono text-sm ${isToday ? 'text-purple-900 font-black' : 'text-slate-500 font-bold'}`}>{day}</span>
                       <div className="flex flex-col gap-1.5 w-full overflow-hidden">
                         {dayCalls.length > 0 && (
                           <div className="text-xs bg-blue-100 text-blue-800 border border-blue-300 px-2 py-1 rounded-md truncate font-bold shadow-sm" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
@@ -768,14 +768,14 @@ export default function LeadManager() {
       ════════════════════════════════════════════════════════════════════ */}
       <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
         <button onClick={() => navigate('/database')}
-          className="text-slate-500 hover:text-blue-600 font-bold text-[15px] uppercase tracking-widest transition-colors flex items-center gap-2 bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm hover:shadow-md">
+          className="text-slate-500 hover:text-purple-900 font-bold text-[15px] uppercase tracking-widest transition-colors flex items-center gap-2 bg-white px-5 py-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Analytics
         </button>
         
         <div className="flex gap-4 items-center">
           <button onClick={() => setShowReminders(true)}
-            className="relative text-slate-700 hover:text-blue-700 font-bold text-[15px] uppercase tracking-widest transition-colors flex items-center gap-2 bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 hover:bg-blue-50"
+            className="relative text-slate-700 hover:text-purple-900 font-bold text-[15px] uppercase tracking-widest transition-all flex items-center gap-2 bg-white px-6 py-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/10"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -789,7 +789,7 @@ export default function LeadManager() {
             )}
           </button>
           
-          <span className="font-bold text-[15px] text-white tracking-widest uppercase flex items-center gap-2 bg-blue-600 px-6 py-3 rounded-xl shadow-md">
+          <span className="font-bold text-[15px] text-purple-900 tracking-widest uppercase flex items-center gap-2 bg-[#EBA7FF]/20 px-6 py-3 rounded-lg border border-[#EBA7FF]/50 shadow-sm">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             Lead Manager
           </span>
@@ -803,7 +803,7 @@ export default function LeadManager() {
           <div>
             <div className="flex items-center gap-4">
               <h1 className="text-4xl font-black text-slate-900 tracking-tight">Lead Manager</h1>
-              <span className="bg-blue-50 text-blue-700 border border-blue-200 px-3.5 py-1.5 rounded-md font-mono text-[10px] font-bold tracking-widest uppercase shadow-sm mt-1">
+              <span className="bg-[#EBA7FF]/20 text-purple-900 border border-[#EBA7FF]/50 px-3.5 py-1.5 rounded-md font-mono text-[10px] font-bold tracking-widest uppercase shadow-sm mt-1">
                 Click row to view profile
               </span>
             </div>
@@ -811,7 +811,7 @@ export default function LeadManager() {
           </div>
           <div className="flex gap-4">
             <button onClick={handleDownloadExcel}
-              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-bold text-[13px] tracking-widest uppercase px-6 py-3.5 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
+              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 hover:text-purple-900 font-bold text-[13px] tracking-widest uppercase px-6 py-3.5 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
               <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
               Export{processedLeads.length !== leads.length ? ` (${processedLeads.length})` : ''}
             </button>
@@ -829,7 +829,7 @@ export default function LeadManager() {
               <input type="text" value={filters.globalSearch}
                 onChange={e => setFilters(p => ({ ...p, globalSearch: e.target.value }))}
                 placeholder="Search name, company, requirement, phone, location..."
-                className="w-full bg-white border border-slate-300 rounded-xl pl-12 pr-10 py-4 text-slate-900 font-medium text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-shadow placeholder:text-slate-400 shadow-sm" />
+                className="w-full bg-white border border-slate-300 rounded-xl pl-12 pr-10 py-4 text-slate-900 font-medium text-base focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow placeholder:text-slate-400 shadow-sm" />
               {filters.globalSearch && (
                 <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-2xl font-bold leading-none">×</button>
               )}
@@ -837,13 +837,13 @@ export default function LeadManager() {
             <button onClick={() => setShowFilters(v => !v)}
               className={`flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-sm tracking-widest uppercase border transition-colors shadow-sm whitespace-nowrap ${
                 showFilters || activeFilterCount > 0
-                  ? 'bg-blue-50 border-blue-300 text-blue-700 ring-2 ring-blue-100'
+                  ? 'bg-purple-50 border-[#EBA7FF] text-purple-900 ring-2 ring-[#EBA7FF]/50'
                   : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
               }`}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
               Filters
               {activeFilterCount > 0 && (
-                <span className="bg-blue-600 text-white text-[12px] font-black rounded-md px-2 py-0.5 ml-1">{activeFilterCount}</span>
+                <span className="bg-purple-900 text-white text-[12px] font-black rounded-md px-2 py-0.5 ml-1">{activeFilterCount}</span>
               )}
             </button>
             {(activeFilterCount > 0 || sortConfig.key) && (
@@ -860,7 +860,7 @@ export default function LeadManager() {
                 <div className="flex flex-wrap gap-2.5">
                   {uniqueSources.map(src => (
                     <button key={src} onClick={() => toggleFilter('source', src)}
-                      className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-blue-600 border-blue-700 text-white shadow-md' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-100'}`}>
+                      className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-purple-900 border-purple-950 text-white shadow-[0_0_10px_rgba(235,167,255,0.4)]' : 'bg-white border-slate-300 text-slate-600 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                       {filters.source.includes(src) && '✓ '}{src}
                     </button>
                   ))}
@@ -874,10 +874,10 @@ export default function LeadManager() {
                     const on = stage === 'Closed - Won' ? 'bg-emerald-600 border-emerald-700 text-white shadow-md'
                              : stage === 'Closed - Lost' ? 'bg-rose-600 border-rose-700 text-white shadow-md'
                              : stage === 'Negotiation' ? 'bg-purple-600 border-purple-700 text-white shadow-md'
-                             : 'bg-blue-600 border-blue-700 text-white shadow-md';
+                             : 'bg-purple-900 border-purple-950 text-white shadow-[0_0_10px_rgba(235,167,255,0.4)]';
                     return (
                       <button key={stage} onClick={() => toggleFilter('status', stage)}
-                        className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all shadow-sm ${filters.status.includes(stage) ? on : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-100'}`}>
+                        className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all shadow-sm ${filters.status.includes(stage) ? on : 'bg-white border-slate-300 text-slate-600 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                         {filters.status.includes(stage) && '✓ '}{stage}
                       </button>
                     );
@@ -892,7 +892,7 @@ export default function LeadManager() {
                     { val:'Cold', label:'❄️ Cold', on:'bg-cyan-600 border-cyan-700 text-white shadow-md' }
                   ].map(({ val, label, on }) => (
                     <button key={val} onClick={() => toggleFilter('lead_temp', val)}
-                      className={`px-5 py-2.5 rounded-lg font-bold text-[15px] border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-100'}`}>
+                      className={`px-5 py-2.5 rounded-lg font-bold text-[15px] border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-300 text-slate-600 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
                       {filters.lead_temp.includes(val) && '✓ '}{label}
                     </button>
                   ))}
@@ -903,20 +903,20 @@ export default function LeadManager() {
                   <span className="font-bold text-xs text-slate-500 uppercase tracking-widest">Date Range</span>
                   <div className="flex items-center gap-3">
                     <input type="date" value={filters.dateStart} onChange={e => setFilters(p => ({ ...p, dateStart: e.target.value }))}
-                      className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer shadow-sm" />
+                      className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
                     <span className="text-slate-400 font-black text-xl">→</span>
                     <input type="date" value={filters.dateEnd} onChange={e => setFilters(p => ({ ...p, dateEnd: e.target.value }))}
-                      className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer shadow-sm" />
+                      className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">
                   <span className="font-bold text-xs text-slate-500 uppercase tracking-widest">Value Range (₹)</span>
                   <div className="flex items-center gap-3">
                     <input type="number" value={filters.priceMin} onChange={e => setFilters(p => ({ ...p, priceMin: e.target.value }))}
-                      placeholder="Min" className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400 shadow-sm" />
+                      placeholder="Min" className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
                     <span className="text-slate-400 font-black text-xl">→</span>
                     <input type="number" value={filters.priceMax} onChange={e => setFilters(p => ({ ...p, priceMax: e.target.value }))}
-                      placeholder="Max" className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400 shadow-sm" />
+                      placeholder="Max" className="flex-1 bg-white border border-slate-300 px-4 py-3.5 rounded-xl text-slate-900 font-mono font-bold text-[15px] focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
                   </div>
                 </div>
               </div>
@@ -925,9 +925,9 @@ export default function LeadManager() {
           {activeChips.length > 0 && (
             <div className="flex flex-wrap gap-2.5 mt-3">
               {activeChips.map((chip, i) => (
-                <span key={i} className="inline-flex items-center gap-2 bg-blue-100 border border-blue-300 text-blue-800 px-4 py-2 rounded-lg font-bold text-sm shadow-sm">
+                <span key={i} className="inline-flex items-center gap-2 bg-[#EBA7FF]/10 border border-[#EBA7FF]/40 text-purple-900 px-4 py-2 rounded-lg font-bold text-sm shadow-sm">
                   {chip.label}
-                  <button onClick={chip.remove} className="hover:text-blue-900 transition-colors text-lg leading-none bg-blue-200/50 hover:bg-blue-300 px-2 rounded">×</button>
+                  <button onClick={chip.remove} className="hover:text-[#EBA7FF] transition-colors text-lg leading-none bg-purple-900/10 hover:bg-purple-900 px-2 rounded">×</button>
                 </span>
               ))}
             </div>
@@ -946,7 +946,7 @@ export default function LeadManager() {
           )}
           {isLoading ? (
             <div className="py-32 flex flex-col items-center justify-center gap-6 text-slate-500 font-bold tracking-widest text-lg">
-              <svg className="w-12 h-12 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+              <svg className="w-12 h-12 animate-spin text-[#EBA7FF]" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -956,7 +956,7 @@ export default function LeadManager() {
             <div className="py-32 flex flex-col items-center justify-center gap-5">
               <span className="text-7xl opacity-30 text-slate-400">🔍</span>
               <span className="text-slate-600 font-bold text-xl">No leads match your current filters.</span>
-              <button onClick={clearAllFilters} className="text-blue-600 hover:text-blue-800 font-bold text-base uppercase tracking-widest underline underline-offset-4 transition-colors mt-2">Clear filters</button>
+              <button onClick={clearAllFilters} className="text-purple-700 hover:text-[#EBA7FF] font-bold text-base uppercase tracking-widest underline underline-offset-4 transition-colors mt-2">Clear filters</button>
             </div>
           ) : (
             <>
@@ -966,7 +966,7 @@ export default function LeadManager() {
                     <th className="py-5 px-6 w-14">
                       <input type="checkbox" onChange={handleSelectAll}
                         checked={selectedLeads.length === processedLeads.length && processedLeads.length > 0}
-                        className="w-5 h-5 accent-blue-600 cursor-pointer" />
+                        className="w-5 h-5 accent-purple-900 cursor-pointer" />
                     </th>
                     <th className="py-5 px-4 w-60"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
                     <th className="py-5 px-4 w-64">Requirement</th>
@@ -986,23 +986,23 @@ export default function LeadManager() {
                     return (
                       <tr key={lead.id}
                         onClick={() => openProfile(lead)}
-                        className="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer group">
+                        className="hover:bg-[#EBA7FF]/10 transition-colors duration-200 cursor-pointer group even:bg-[#EBA7FF]/[0.03]">
                         
                         <td className="py-6 px-6" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={selectedLeads.includes(lead.id)}
                             onChange={() => handleSelectLead(lead.id)}
-                            className="w-5 h-5 accent-blue-600 cursor-pointer" />
+                            className="w-5 h-5 accent-purple-900 cursor-pointer" />
                         </td>
                         
                         <td className="py-6 px-4">
                           <div className="flex items-center gap-4">
-                            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 border border-blue-300 flex items-center justify-center text-blue-700 font-bold text-sm shadow-sm">
+                            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-br from-purple-900 to-[#EBA7FF] border border-purple-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                               {getInitials(lead.name)}
                             </div>
                             <div className="flex flex-col gap-1">
                               <span className="text-slate-900 font-black text-base">{lead.name || '—'}</span>
                               <span className="text-slate-500 text-[13px] font-bold">{lead.company_name || ''}</span>
-                              <span className="text-blue-600 text-xs font-mono font-bold mt-0.5">{lead.phone || ''}</span>
+                              <span className="text-purple-700 text-xs font-mono font-bold mt-0.5">{lead.phone || ''}</span>
                             </div>
                           </div>
                         </td>
@@ -1015,9 +1015,9 @@ export default function LeadManager() {
                         
                         <td className="py-6 px-4">
                           {latestNote ? (
-                            <div className="flex flex-col gap-2 bg-slate-50 group-hover:bg-white p-3.5 rounded-lg border-l-2 border-l-blue-400 border-y border-r border-y-slate-100 border-r-slate-100 transition-colors">
+                            <div className="flex flex-col gap-2 bg-slate-50 group-hover:bg-white p-3.5 rounded-lg border-l-2 border-l-[#EBA7FF] border-y border-r border-y-slate-100 border-r-slate-100 transition-colors">
                               <p className="text-slate-700 text-sm leading-relaxed line-clamp-2 italic font-medium">"{latestNote}"</p>
-                              {noteCount > 1 && <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
+                              {noteCount > 1 && <span className="text-purple-800 font-bold text-[10px] uppercase tracking-wider">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
                             <span className="text-slate-400 font-medium text-xs italic">No notes recorded</span>
@@ -1047,8 +1047,8 @@ export default function LeadManager() {
                         
                         <td className="py-6 px-4 text-center">
                           <div className="flex flex-col gap-2 items-start bg-slate-50 group-hover:bg-white p-3 rounded-lg border border-slate-100 w-fit mx-auto min-w-[120px] transition-colors">
-                            {lead.tentative_call_date && <span className="font-mono text-xs text-blue-700 font-bold flex items-center gap-2">📞 {lead.tentative_call_date}</span>}
-                            {lead.gmeet_date && <span className="font-mono text-xs text-purple-700 font-bold flex items-center gap-2">📹 {lead.gmeet_date}</span>}
+                            {lead.tentative_call_date && <span className="font-mono text-xs text-purple-900 font-bold flex items-center gap-2">📞 {lead.tentative_call_date}</span>}
+                            {lead.gmeet_date && <span className="font-mono text-xs text-purple-900 font-bold flex items-center gap-2">📹 {lead.gmeet_date}</span>}
                             {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-bold text-xs mx-auto py-1 italic">Unscheduled</span>}
                           </div>
                         </td>
@@ -1075,12 +1075,12 @@ export default function LeadManager() {
               <div className="flex justify-between items-center px-8 py-5 bg-slate-50 border-t border-slate-200 rounded-b-xl">
                 <span className="font-medium text-sm text-slate-500">
                   Showing <strong className="text-slate-900 font-black">{processedLeads.length}</strong> of <strong className="text-slate-900 font-black">{leads.length}</strong> leads
-                  {processedLeads.length !== leads.length && <span className="text-blue-600 font-bold"> (filtered)</span>}
+                  {processedLeads.length !== leads.length && <span className="text-purple-700 font-bold"> (filtered)</span>}
                   {sortConfig.key && <span> · sorted by <strong className="text-slate-900 font-bold">{sortConfig.key}</strong> {sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}
                   <span className="ml-5 text-slate-400 hidden md:inline">· Scroll right to see Date / Source</span>
                 </span>
                 <span className="font-bold text-[13px] text-slate-600 uppercase tracking-widest">
-                  Filtered Pipeline Value: <strong className="text-emerald-600 text-lg ml-2 tracking-normal font-black">₹{filteredValue.toLocaleString('en-IN')}</strong>
+                  Filtered Pipeline Value: <strong className="text-emerald-700 text-lg ml-2 tracking-normal font-black">₹{filteredValue.toLocaleString('en-IN')}</strong>
                 </span>
               </div>
             </>
