@@ -341,7 +341,7 @@ export default function LeadManager() {
   
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }}
-      className={`ml-1.5 text-xs transition-all hover:scale-110 ${sortConfig.key === col ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+      className={`ml-1.5 text-[11px] transition-all hover:scale-110 ${sortConfig.key === col ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -412,7 +412,6 @@ export default function LeadManager() {
             </div>
 
             <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/30">
-              {/* LEFT: Edit Form */}
               <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 min-w-0">
                 <section>
                   <p className="font-bold text-base text-slate-800 mb-4 border-b border-slate-200 pb-2">Contact Information</p>
@@ -507,7 +506,6 @@ export default function LeadManager() {
                 </section>
               </div>
 
-              {/* RIGHT: Notes Feed */}
               <div className="w-[440px] flex-shrink-0 flex flex-col border-l border-slate-200 overflow-hidden bg-white">
                 <div className="flex-shrink-0 p-6 border-b border-slate-200 bg-slate-50">
                   <p className="font-bold text-base text-slate-800 mb-3">Append Update</p>
@@ -609,7 +607,6 @@ export default function LeadManager() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-slate-200 pb-8">
-              {/* LEFT COLUMN: Today & Overdue */}
               <div className="flex flex-col gap-4 bg-rose-50/50 border border-rose-200 p-6 rounded-xl shadow-sm">
                 <h4 className="font-bold text-base text-rose-700 border-b border-rose-200 pb-3 flex items-center gap-2">
                   <span>⚠️ Today & Overdue</span>
@@ -652,7 +649,6 @@ export default function LeadManager() {
                 )}
               </div>
 
-              {/* RIGHT COLUMN: Tomorrow & Upcoming */}
               <div className="flex flex-col gap-4 bg-slate-50 border border-slate-200 p-6 rounded-xl shadow-sm">
                 <h4 className="font-bold text-base text-slate-700 border-b border-slate-200 pb-3 flex items-center gap-2">
                   <span>📅 Tomorrow & Upcoming</span>
@@ -791,7 +787,7 @@ export default function LeadManager() {
           <div>
             <div className="flex items-center gap-4">
               <h1 className="text-4xl font-black text-slate-900 tracking-tight">Lead Manager</h1>
-              <span className="bg-blue-50 text-blue-700 border border-blue-200 px-3.5 py-1.5 rounded-md font-mono text-[11px] font-bold tracking-widest uppercase shadow-sm mt-1">
+              <span className="bg-blue-50 text-blue-700 border border-blue-200 px-3.5 py-1.5 rounded-md font-mono text-[10px] font-bold tracking-widest uppercase shadow-sm mt-1">
                 Click row to view profile
               </span>
             </div>
@@ -984,14 +980,18 @@ export default function LeadManager() {
                         
                         <td className="py-5 px-4">
                           <div className="flex flex-col gap-1.5">
-                            <span className="text-slate-900 font-black text-[15px]">{lead.name || '—'}</span>
-                            <span className="text-slate-600 text-sm font-bold">{lead.company_name || ''}</span>
-                            <span className="text-blue-700 text-xs font-mono font-bold mt-0.5">{lead.phone || ''}</span>
+                            {/* 🔥 BUMPED FONT: Client Name */}
+                            <span className="text-slate-900 font-black text-lg">{lead.name || '—'}</span>
+                            {/* 🔥 BUMPED FONT: Company */}
+                            <span className="text-slate-600 text-[15px] font-bold">{lead.company_name || ''}</span>
+                            {/* 🔥 BUMPED FONT: Phone */}
+                            <span className="text-blue-700 text-[14px] font-mono font-medium mt-0.5">{lead.phone || ''}</span>
                           </div>
                         </td>
                         
                         <td className="py-5 px-4">
-                          <span className="text-slate-700 font-medium text-[15px] line-clamp-2 leading-relaxed">
+                          {/* 🔥 BUMPED FONT: Requirement */}
+                          <span className="text-slate-700 font-medium text-base line-clamp-2 leading-relaxed">
                             {lead.requirement || <span className="text-slate-400 italic">No requirement provided</span>}
                           </span>
                         </td>
@@ -999,11 +999,13 @@ export default function LeadManager() {
                         <td className="py-5 px-4">
                           {latestNote ? (
                             <div className="flex flex-col gap-2 bg-slate-100/80 group-hover:bg-white p-3.5 rounded-lg border border-slate-200 transition-colors shadow-sm">
-                              <p className="text-slate-800 text-sm leading-relaxed line-clamp-2 italic font-medium">"{latestNote}"</p>
+                              {/* 🔥 BUMPED FONT: Latest Note */}
+                              <p className="text-slate-800 text-[15px] leading-relaxed line-clamp-2 italic font-medium">"{latestNote}"</p>
                               {noteCount > 1 && <span className="text-blue-700 font-bold text-[10px] uppercase tracking-wider">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
-                            <span className="text-slate-500 font-bold text-xs italic bg-slate-100 px-4 py-2.5 rounded-lg border border-slate-200">No notes recorded</span>
+                            /* 🔥 BUMPED FONT: No Note State */
+                            <span className="text-slate-500 font-bold text-[13px] italic bg-slate-100 px-4 py-2.5 rounded-lg border border-slate-200">No notes recorded</span>
                           )}
                         </td>
                         
@@ -1011,7 +1013,7 @@ export default function LeadManager() {
                           <div className="flex flex-col items-center gap-2">
                             <StatusBadge status={lead.status} />
                             {lead.status === 'Closed - Lost' && lead.lost_reason && (
-                              <span className="text-[11px] text-rose-700 font-bold font-mono truncate max-w-[140px] px-2.5 py-1 bg-rose-100 rounded-md border border-rose-300 shadow-sm" title={lead.lost_reason}>
+                              <span className="text-[10px] text-rose-700 font-bold font-mono truncate max-w-[140px] px-2.5 py-1 bg-rose-100 rounded-md border border-rose-300 shadow-sm" title={lead.lost_reason}>
                                 ↳ {lead.lost_reason}
                               </span>
                             )}
@@ -1029,7 +1031,7 @@ export default function LeadManager() {
                         </td>
                         
                         <td className="py-5 px-4 text-center">
-                          <div className="flex flex-col gap-2 items-start bg-slate-100 p-3 rounded-lg border border-slate-200 w-fit mx-auto min-w-[120px] shadow-sm">
+                          <div className="flex flex-col gap-2 items-start bg-slate-100 p-2.5 rounded-lg border border-slate-200 w-fit mx-auto min-w-[120px] shadow-sm">
                             {lead.tentative_call_date && <span className="font-mono text-xs text-blue-800 font-bold flex items-center gap-2">📞 {lead.tentative_call_date}</span>}
                             {lead.gmeet_date && <span className="font-mono text-xs text-purple-800 font-bold flex items-center gap-2">📹 {lead.gmeet_date}</span>}
                             {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-500 font-bold text-sm mx-auto py-1 italic">Unscheduled</span>}
