@@ -18,7 +18,6 @@ const getLatestNotePreview = (notesStr) => {
   return text.length > 70 ? text.slice(0, 70) + '…' : text;
 };
 
-// Extremely important for default sorting
 const getLatestNoteTimestamp = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return 0;
@@ -65,6 +64,11 @@ export default function LeadManager() {
   // === REMINDERS & CALENDAR STATE ===
   const [showReminders, setShowReminders] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Pagination State for Reminders
+  const [todayPage, setTodayPage] = useState(1);
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const ITEMS_PER_PAGE = 3;
 
   // === SORT & FILTER STATE ===
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -100,7 +104,6 @@ export default function LeadManager() {
       const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       
-      // Basic deduplication safety
       const unique = data.filter((l, i, a) =>
         i === a.findIndex(t => t.name?.toLowerCase() === l.name?.toLowerCase() && t.requirement?.toLowerCase() === l.requirement?.toLowerCase())
       );
@@ -114,19 +117,33 @@ export default function LeadManager() {
 
   // ── ALERTS & REMINDERS LOGIC ────────────────────────────────────────────────
   const todayStr = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  const urgentAlerts = [];
+  let todayAlerts = [];
+  let upcomingAlerts = [];
+
   leads.forEach(lead => {
-    if (lead.tentative_call_date && !lead.call_attended && (lead.tentative_call_date === todayStr || lead.tentative_call_date === tomorrowStr)) {
-      urgentAlerts.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
+    if (lead.tentative_call_date && !lead.call_attended) {
+      const isUpcoming = lead.tentative_call_date > todayStr;
+      const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
+      targetArray.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
     }
-    if (lead.gmeet_date && !lead.gmeet_attended && (lead.gmeet_date === todayStr || lead.gmeet_date === tomorrowStr)) {
-      urgentAlerts.push({ ...lead, alertType: 'GMeet', alertDate: lead.gmeet_date });
+    if (lead.gmeet_date && !lead.gmeet_attended) {
+      const gDate = lead.gmeet_date.split('T')[0];
+      const isUpcoming = gDate > todayStr;
+      const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
+      targetArray.push({ ...lead, alertType: 'GMeet', alertDate: gDate });
     }
   });
+
+  // Sort ascending (closest dates at the top)
+  todayAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
+  upcomingAlerts.sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
+
+  // Pagination Math
+  const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
+  const upcomingTotalPages = Math.ceil(upcomingAlerts.length / ITEMS_PER_PAGE);
+  const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
+  const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
   const handleMarkAttended = async (leadId, alertType) => {
     const columnToUpdate = alertType === 'Call' ? 'call_attended' : 'gmeet_attended';
@@ -136,6 +153,23 @@ export default function LeadManager() {
     } catch (err) {
       console.error("Failed to update status:", err.message);
     }
+  };
+
+  // Helper for Pagination Bubbles
+  const renderPagination = (currentPage, totalPages, setPage) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex gap-2 justify-center mt-3">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => setPage(p)}
+            className={`w-7 h-7 rounded-md font-mono text-xs transition-colors ${
+              currentPage === p ? 'bg-primary text-white shadow-glow-primary' : 'bg-white/10 text-secondary hover:bg-white/20 hover:text-white'
+            }`}>
+            {p}
+          </button>
+        ))}
+      </div>
+    );
   };
 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -253,14 +287,13 @@ export default function LeadManager() {
         return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
       });
     } else {
-      // 🚀 MASTER SORT LOGIC: Rank by Most Recent Activity (Note OR Creation Date)
+      // MASTER SORT LOGIC: Rank by Most Recent Activity (Note OR Creation Date)
       r.sort((a, b) => {
         const lastActivityA = Math.max(getLatestNoteTimestamp(a.notes), new Date(a.created_at || 0).getTime());
         const lastActivityB = Math.max(getLatestNoteTimestamp(b.notes), new Date(b.created_at || 0).getTime());
         return lastActivityB - lastActivityA;
       });
     }
-
     return r;
   }, [leads, filters, sortConfig]);
 
@@ -367,7 +400,6 @@ export default function LeadManager() {
             </div>
 
             <div className="flex flex-1 min-h-0 overflow-hidden">
-              {/* LEFT: Edit Form */}
               <div className="flex-1 overflow-y-auto p-7 flex flex-col gap-8 min-w-0">
                 <section>
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
@@ -470,7 +502,6 @@ export default function LeadManager() {
                 </section>
               </div>
 
-              {/* RIGHT: Notes Feed */}
               <div className="w-[420px] flex-shrink-0 flex flex-col border-l border-white/10 overflow-hidden bg-white/[0.02]">
                 <div className="flex-shrink-0 p-6 border-b border-white/10">
                   <p className="font-mono text-[9px] text-secondary uppercase tracking-[0.2em] mb-3">Append Update</p>
@@ -560,9 +591,9 @@ export default function LeadManager() {
       ════════════════════════════════════════════════════════════════════ */}
       {showReminders && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#080d1a] border border-white/20 p-6 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
+          <div className="bg-[#080d1a] border border-white/20 p-8 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
             
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+            <div className="flex justify-between items-center border-b border-white/10 pb-5">
               <h3 className="text-2xl font-bold text-white flex items-center gap-3">
                 📅 Schedule & Reminders
               </h3>
@@ -571,53 +602,110 @@ export default function LeadManager() {
               </button>
             </div>
 
-            {urgentAlerts.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                <h4 className="font-mono text-xs text-red-400 uppercase tracking-widest">⚠️ Urgent Action Required</h4>
-                {urgentAlerts.map((alert, index) => (
-                  <div key={index} className="bg-red-900/20 border border-red-500/30 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
-                          {alert.alertType}
-                        </span>
-                        <span className="text-white font-mono text-sm">
-                          {alert.alertDate === todayStr ? 'TODAY' : 'TOMORROW'}
-                        </span>
+            {/* Split layout: Today vs Upcoming */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-white/10 pb-8">
+              
+              {/* LEFT COLUMN: Today & Overdue */}
+              <div className="flex flex-col gap-4 bg-red-500/5 border border-red-500/10 p-5 rounded-xl">
+                <h4 className="font-mono text-sm text-red-400 uppercase tracking-widest border-b border-red-500/20 pb-3 flex items-center gap-2">
+                  <span>⚠️ Today & Overdue</span>
+                  <span className="bg-red-500/20 text-red-300 px-2 py-0.5 rounded text-[10px]">{todayAlerts.length}</span>
+                </h4>
+                
+                {currentTodayAlerts.length > 0 ? (
+                  <div className="flex flex-col gap-3 min-h-[380px]">
+                    {currentTodayAlerts.map((alert, index) => (
+                      <div key={index} className="bg-black/40 border border-red-500/30 p-4 rounded-xl flex flex-col justify-between gap-3 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                              {alert.alertType}
+                            </span>
+                            <span className="text-red-300 font-mono text-[10px] bg-red-500/10 px-2 py-0.5 rounded">
+                              {alert.alertDate}
+                            </span>
+                          </div>
+                          <p className="text-white font-medium text-base truncate">{alert.name}</p>
+                        </div>
+                        <div className="flex gap-2 w-full mt-1">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                            Dismiss
+                          </button>
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                            ✓ Attended
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-white font-medium text-lg">{alert.name}</p>
-                    </div>
-                    
-                    <div className="flex gap-3 w-full md:w-auto">
-                      <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded-lg transition-colors">
-                        Will Attend Soon
-                      </button>
-                      <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded-lg transition-colors shadow-[0_0_10px_rgba(34,197,94,0.3)]">
-                        ✓ Already Attended
-                      </button>
+                    ))}
+                    <div className="mt-auto">
+                      {renderPagination(todayPage, todayTotalPages, setTodayPage)}
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="flex-1 flex items-center justify-center min-h-[150px]">
+                    <span className="text-green-400/70 font-mono text-xs tracking-widest uppercase">✅ Clear for today</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="bg-green-900/10 border border-green-500/20 p-5 rounded-xl flex items-center justify-center">
-                <span className="text-green-400 font-mono text-sm tracking-widest uppercase">✅ No urgent calls or meetings today.</span>
-              </div>
-            )}
 
-            <div className="mt-2">
-              <div className="flex justify-between items-center mb-4 bg-white/5 p-3 rounded-lg border border-white/10">
+              {/* RIGHT COLUMN: Tomorrow & Upcoming */}
+              <div className="flex flex-col gap-4 bg-blue-500/5 border border-blue-500/10 p-5 rounded-xl">
+                <h4 className="font-mono text-sm text-blue-400 uppercase tracking-widest border-b border-blue-500/20 pb-3 flex items-center gap-2">
+                  <span>📅 Tomorrow & Upcoming</span>
+                  <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-[10px]">{upcomingAlerts.length}</span>
+                </h4>
+                
+                {currentUpcomingAlerts.length > 0 ? (
+                  <div className="flex flex-col gap-3 min-h-[380px]">
+                    {currentUpcomingAlerts.map((alert, index) => (
+                      <div key={index} className="bg-black/40 border border-blue-500/20 p-4 rounded-xl flex flex-col justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                              {alert.alertType}
+                            </span>
+                            <span className="text-blue-300 font-mono text-[10px] bg-blue-500/10 px-2 py-0.5 rounded">
+                              {alert.alertDate}
+                            </span>
+                          </div>
+                          <p className="text-white font-medium text-base truncate">{alert.name}</p>
+                        </div>
+                        <div className="flex gap-2 w-full mt-1">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                            Dismiss
+                          </button>
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-[10px] tracking-wider uppercase py-2 rounded-lg transition-colors">
+                            ✓ Attended
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-auto">
+                      {renderPagination(upcomingPage, upcomingTotalPages, setUpcomingPage)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center min-h-[150px]">
+                    <span className="text-secondary/50 font-mono text-xs tracking-widest uppercase">No upcoming alerts</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Calendar View Section */}
+            <div>
+              <div className="flex justify-between items-center mb-5 bg-white/5 p-4 rounded-xl border border-white/10">
                 <h4 className="font-mono text-sm text-white uppercase tracking-widest">
                   {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h4>
                 <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-1.5 bg-white/10 rounded hover:bg-white/20 transition-colors">{'<'}</button>
-                  <button onClick={() => setCurrentMonth(new Date())} className="px-3 font-mono text-xs bg-white/10 rounded hover:bg-white/20 transition-colors">TODAY</button>
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-1.5 bg-white/10 rounded hover:bg-white/20 transition-colors">{'>'}</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-4 font-mono text-xs bg-white/10 rounded-lg hover:bg-white/20 transition-colors">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">{'>'}</button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-3">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                   <div key={d} className="text-center font-mono text-[10px] uppercase text-secondary py-2">{d}</div>
                 ))}
@@ -625,20 +713,20 @@ export default function LeadManager() {
                 {calendarDays.map(day => {
                   const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isToday = dateString === todayStr;
-                  const dayCalls = leads.filter(l => l.tentative_call_date === dateString);
-                  const dayMeets = leads.filter(l => l.gmeet_date === dateString);
+                  const dayCalls = leads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
+                  const dayMeets = leads.filter(l => l.gmeet_date && l.gmeet_date.startsWith(dateString) && !l.gmeet_attended);
 
                   return (
-                    <div key={day} className={`min-h-[85px] p-2 border rounded-lg flex flex-col items-start gap-1.5 transition-colors ${isToday ? 'border-primary bg-primary/10 shadow-[0_0_10px_rgba(99,102,241,0.1)]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
+                    <div key={day} className={`min-h-[85px] p-2.5 border rounded-xl flex flex-col items-start gap-2 transition-colors ${isToday ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
                       <span className={`font-mono text-xs ${isToday ? 'text-primary font-bold' : 'text-secondary'}`}>{day}</span>
                       <div className="flex flex-col gap-1.5 w-full overflow-hidden">
                         {dayCalls.length > 0 && (
-                          <div className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded truncate font-medium" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
+                          <div className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-1 rounded truncate font-medium" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
                             📞 {dayCalls.length} Call(s)
                           </div>
                         )}
                         {dayMeets.length > 0 && (
-                          <div className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded truncate font-medium" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
+                          <div className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-1 rounded truncate font-medium" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
                             📹 {dayMeets.length} Meet(s)
                           </div>
                         )}
@@ -690,6 +778,7 @@ export default function LeadManager() {
       </div>
 
       <div className="glass-modal w-full max-w-[95%] xl:max-w-[95%] p-8 relative z-10 flex flex-col gap-6 shadow-2xl">
+        {/* Header */}
         <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <div className="flex items-center gap-4">
