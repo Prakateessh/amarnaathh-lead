@@ -51,7 +51,7 @@ export default function ManualEntry() {
       const { data, error } = await supabase
         .from('leads')
         .select('*')
-        .in('source', ['Website', 'YouTube', 'LinkedIn', 'Direct', 'Referral', 'Manual Entry'])
+        .in('source', ['Website', 'YouTube', 'LinkedIn', 'Direct', 'Referral','IndiaMart' , 'TradeIndia'])
         .order('created_at', { ascending: false })
         .limit(10); // 🚨 STRICTLY LIMIT TO LAST 10
 
@@ -118,7 +118,7 @@ export default function ManualEntry() {
       // Clear form
       setFormData({
         date: new Date().toISOString().split('T')[0],
-        requirement: '', name: '', company: '', phone: '', location: '', price: '', notes: '', source: 'Manual Entry'
+        requirement: '', name: '', company: '', phone: '', location: '', price: '', notes: '', source: ''
       });
 
       // Instantly refresh the table below
@@ -220,7 +220,6 @@ export default function ManualEntry() {
                 <option value="LinkedIn">💼 LinkedIn</option>
                 <option value="Direct">📞 Direct Call / Walk-in</option>
                 <option value="Referral">🤝 Referral</option>
-                <option value="Manual Entry">📝 Manual Entry</option>
                 <option value="IndiaMart">🛒 IndiaMart</option>
                 <option value="TradeIndia">📦 TradeIndia</option>
               </select>
