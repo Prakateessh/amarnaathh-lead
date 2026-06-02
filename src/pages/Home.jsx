@@ -6,6 +6,18 @@ import { supabase } from '../supabaseClient';
 import indiamartLogo from '../assets/icons/indiamart.png';
 import tradeindiaLogo from '../assets/icons/tradeindia.png';
 
+// ── DATE FORMATTING UTILITY ────────────────────────────────────────────────
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return '—';
+  // Manually parse YYYY-MM-DD to completely avoid Timezone shift bugs
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length === 3) {
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  return dateStr;
+};
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -87,10 +99,10 @@ export default function Home() {
   const renderPagination = (currentPage, totalPages, setPage) => {
     if (totalPages <= 1) return null;
     return (
-      <div className="flex gap-2 justify-center mt-3">
+      <div className="flex gap-3 justify-center mt-4">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setPage(p)}
-            className={`w-8 h-8 rounded-md font-mono text-sm font-bold transition-all duration-300 ${
+            className={`w-10 h-10 rounded-lg font-mono text-base font-bold transition-all duration-300 ${
               currentPage === p ? 'bg-purple-900 text-white shadow-md ring-2 ring-[#EBA7FF]/50' : 'bg-slate-100 border border-slate-300 text-slate-700 hover:bg-[#EBA7FF]/20 hover:text-purple-900'
             }`}>
             {p}
@@ -103,6 +115,7 @@ export default function Home() {
   // Action: Logout properly
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userRole'); // Clear role cache as well
     navigate('/');
   };
 
@@ -114,7 +127,6 @@ export default function Home() {
   const firstDayOffset = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const blanks = Array.from({ length: firstDayOffset }, (_, i) => i);
   const calendarDays = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
-
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   // 2. Map the imported local variables to the image sources
@@ -122,43 +134,43 @@ export default function Home() {
     {
       name: 'IndiaMart',
       path: '/indiamart',
-      icon: <img src={indiamartLogo} alt="IndiaMart" className="w-10 h-10 object-contain rounded-md shadow-[0_0_10px_rgba(255,255,255,0.1)]" />,
+      icon: <img src={indiamartLogo} alt="IndiaMart" className="w-14 h-14 object-contain rounded-md" />,
     },
     {
       name: 'TradeIndia',
       path: '/tradeindia',
-      icon: <img src={tradeindiaLogo} alt="TradeIndia" className="w-10 h-10 object-contain rounded-md shadow-[0_0_10px_rgba(255,255,255,0.1)]" />,
+      icon: <img src={tradeindiaLogo} alt="TradeIndia" className="w-14 h-14 object-contain rounded-md" />,
     },
     {
       name: 'Manual Entry',
       path: '/manual',
-      icon: <svg className="w-10 h-10 text-secondary group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>,
+      icon: <svg className="w-14 h-14 text-purple-600 group-hover:text-purple-900 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>,
     }
   ];
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col items-center justify-start py-20 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-start py-20 px-4 relative overflow-hidden font-sans">
       
       {/* Background Ambient Glows */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[150px] pointer-events-none"></div>
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[150px] pointer-events-none"></div>
 
       {/* Top Navbar */}
-      <div className="absolute top-0 w-full p-6 flex justify-end gap-6 z-20 max-w-[1440px]">
+      <div className="absolute top-0 w-full p-8 flex justify-end gap-6 z-20 max-w-[95%] xl:max-w-7xl">
         
         {/* Reminders Button */}
         <button 
           onClick={() => setShowReminders(true)}
-          className="relative text-secondary hover:text-white font-mono text-xs uppercase tracking-widest transition-colors flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:border-white/30"
+          className="relative text-slate-700 hover:text-purple-900 font-black text-sm uppercase tracking-widest transition-all flex items-center gap-3 bg-white px-7 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/10"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
           </svg>
           Reminders
           {urgentAlerts.length > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            <span className="absolute -top-2 -right-2 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-600 border-2 border-white"></span>
             </span>
           )}
         </button>
@@ -166,47 +178,47 @@ export default function Home() {
         {/* Logout Button */}
         <button 
           onClick={handleLogout}
-          className="text-secondary hover:text-primary font-mono text-xs uppercase tracking-widest transition-colors flex items-center gap-2"
+          className="text-slate-700 hover:text-rose-700 font-black text-sm uppercase tracking-widest transition-all flex items-center gap-3 bg-white px-7 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md hover:border-rose-300 hover:bg-rose-50"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
           </svg>
           Terminate Session
         </button>
       </div>
 
-      <div className="relative z-10 w-full max-w-5xl flex flex-col items-center gap-16">
+      <div className="relative z-10 w-full max-w-5xl flex flex-col items-center gap-16 mt-10">
         
         {/* Section 1: Header & Description */}
-        <div className="text-center space-y-4 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full mb-4">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        <div className="text-center space-y-5 max-w-3xl">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-100 border border-emerald-300 rounded-full mb-2 shadow-sm">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Main Grid Online</span>
+            <span className="font-bold text-xs text-emerald-800 uppercase tracking-widest">Main Grid Online</span>
           </div>
           
-          <h1 className="text-5xl font-sans font-bold text-white tracking-tight">
+          <h1 className="text-6xl font-black text-slate-900 tracking-tight">
             Lead Management Portal
           </h1>
-          <p className="text-onSurfaceVariant text-lg font-sans">
+          <p className="text-slate-500 text-xl font-medium px-4">
             Select an external data stream to route new leads into the CRM, or access the centralized operator database to view existing records.
           </p>
         </div>
 
         {/* Section 2: The Data Source Buttons */}
-        <div className="flex flex-wrap justify-center gap-6 w-full">
+        <div className="flex flex-wrap justify-center gap-8 w-full">
           {dataSources.map((source) => (
             <button
               key={source.name}
               onClick={() => navigate(source.path)}
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center gap-4 w-44 h-44 hover:bg-white/10 hover:border-primary/50 hover:shadow-glow-primary hover:-translate-y-1 transition-all duration-300 group"
+              className="bg-white border border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center gap-5 w-56 h-56 hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/5 hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(235,167,255,0.2)] transition-all duration-300 group shadow-md"
             >
-              <div className="text-secondary group-hover:text-primary transition-colors duration-300">
+              <div className="transition-colors duration-300">
                 {source.icon}
               </div>
-              <span className="font-mono text-sm text-white tracking-wider font-medium text-center">
+              <span className="font-black text-lg text-slate-700 group-hover:text-purple-900 tracking-widest text-center">
                 {source.name}
               </span>
             </button>
@@ -214,39 +226,35 @@ export default function Home() {
         </div>
 
         {/* Divider */}
-        <div className="w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-4"></div>
+        <div className="w-full max-w-4xl h-px bg-slate-200 my-2"></div>
 
         {/* Section 3: The Database Button */}
         <button
           onClick={() => navigate('/database')}
-          className="btn-primary w-full max-w-md h-20 rounded-xl flex items-center justify-center gap-4 group relative overflow-hidden"
+          className="bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 text-white font-black text-xl tracking-widest uppercase rounded-2xl w-full max-w-md h-20 transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(235,167,255,0.6)] flex items-center justify-center gap-4"
         >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
-          <svg className="w-6 h-6 text-white relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
           </svg>
-          <span className="font-mono text-base tracking-widest uppercase font-bold text-white relative z-10">
-            Access Master Database
-          </span>
+          Access Master Database
         </button>
       </div>
 
       {/* ── MODAL: REMINDERS & CALENDAR (LIGHT THEME) ───────────────────────────── */}
       {showReminders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white border border-slate-200 p-8 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-8 font-sans">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 p-10 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-8">
             
-            <div className="flex justify-between items-center border-b border-slate-200 pb-5">
-              <h3 className="text-3xl font-black text-purple-900 flex items-center gap-4">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-6">
+              <h3 className="text-4xl font-black text-purple-900 flex items-center gap-4">
                 📅 Schedule & Reminders
               </h3>
-              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-3 rounded-full transition-colors border border-slate-200 shadow-sm">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-4 rounded-full transition-colors border border-slate-200 shadow-sm">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-b border-slate-200 pb-10">
-              {/* LEFT COLUMN: Today & Overdue */}
               <div className="flex flex-col gap-5 bg-rose-50 border border-rose-200 p-8 rounded-2xl shadow-sm">
                 <h4 className="font-black text-xl text-rose-700 border-b border-rose-200 pb-4 flex items-center gap-3">
                   <span>⚠️ Today & Overdue</span>
@@ -263,7 +271,7 @@ export default function Home() {
                               {alert.alertType}
                             </span>
                             <span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">
-                              {alert.alertDate}
+                              {formatDisplayDate(alert.alertDate)}
                             </span>
                           </div>
                           <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
@@ -289,7 +297,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* RIGHT COLUMN: Tomorrow & Upcoming */}
               <div className="flex flex-col gap-5 bg-slate-50 border border-slate-200 p-8 rounded-2xl shadow-sm">
                 <h4 className="font-black text-xl text-slate-800 border-b border-slate-200 pb-4 flex items-center gap-3">
                   <span>📅 Tomorrow & Upcoming</span>
@@ -306,7 +313,7 @@ export default function Home() {
                               {alert.alertType}
                             </span>
                             <span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">
-                              {alert.alertDate}
+                              {formatDisplayDate(alert.alertDate)}
                             </span>
                           </div>
                           <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
