@@ -9,8 +9,6 @@ import {
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 const PIPELINE_STAGES = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
 const STAGE_COLORS    = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#10b981']; 
-
-// Base colors used for HTML elements (legends, tooltips, mini-bars)
 const TEMP_COLORS     = { Hot: '#e11d48', Warm: '#ea580c', Cold: '#0284c7' };
 
 export default function DetailedAnalytics() {
@@ -47,7 +45,6 @@ export default function DetailedAnalytics() {
   const wonCount    = leads.filter(l => l.status === 'Closed - Won').length;
   const closedTotal = wonCount + lostCount;
   const winRate     = closedTotal > 0 ? ((wonCount / closedTotal) * 100).toFixed(1) : '—';
-  const funnelMax   = Math.max(...funnelData.map(d => d.count), 1);
 
   // ── SOURCE × TEMPERATURE DATA ─────────────────────────────────────────────────
   const sourceData = useMemo(() => {
@@ -96,7 +93,6 @@ export default function DetailedAnalytics() {
   const InnerLabel = ({ x, y, width, height, value }) =>
     value > 0 ? (
       <g>
-        {/* Dark translucent halo for massive contrast */}
         <circle cx={x + width / 2} cy={y + height / 2} r="14" fill="rgba(0,0,0,0.15)" />
         <text x={x + width / 2} y={y + height / 2} textAnchor="middle"
           dominantBaseline="central" fill="#ffffff" fontSize={16}
@@ -186,235 +182,197 @@ export default function DetailedAnalytics() {
               ))}
             </div>
 
-            {/* ── TWO CHARTS ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-
-              {/* ════════════════════════════════════════════════
-                  CHART 1 — SALES FUNNEL (Consistent Widths)
-              ════════════════════════════════════════════════ */}
-              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner h-full">
-                <div className="pb-5 border-b border-slate-200">
+            {/* ════════════════════════════════════════════════
+                HORIZONTAL SALES FUNNEL 
+            ════════════════════════════════════════════════ */}
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner w-full">
+              <div className="pb-5 border-b border-slate-200 flex justify-between items-end">
+                <div>
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Sales Funnel</h2>
                   <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
                     Pipeline stage progression &amp; conversion rates
                   </p>
                 </div>
-
-                <div className="flex flex-col items-center w-full gap-0 mt-4">
-                  {funnelData.map((stage, index) => {
-                    // Inner progress bar width logic
-                    const widthPct  = Math.max((stage.count / funnelMax) * 100, 2); 
-                    const prevStage = index > 0 ? funnelData[index - 1] : null;
-                    const advRate   = prevStage && prevStage.count > 0
-                      ? Math.round((stage.count / prevStage.count) * 100)
-                      : null;
-                    const pctAll    = leads.length > 0
-                      ? ((stage.count / leads.length) * 100).toFixed(1)
-                      : '0';
-
-                    return (
-                      <div key={stage.name} className="flex flex-col items-center w-full">
-
-                        {/* ── Connector + conversion label ── */}
-                        {index > 0 && (
-                          <div className="flex flex-col items-center py-2 w-full">
-                            <svg width="100%" height="24" viewBox="0 0 200 24" preserveAspectRatio="none" className="opacity-40">
-                              <line x1="50%" y1="0" x2="50%" y2="24" stroke={stage.color} strokeWidth="3" strokeDasharray="4 4" />
-                            </svg>
-                            <div className="flex items-center gap-2 mt-1 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm z-10 -translate-y-4">
-                              <svg className="w-3 h-3" viewBox="0 0 12 8" fill="none">
-                                <path d="M6 8L0 0h12L6 8z" fill={stage.color} />
-                              </svg>
-                              {advRate !== null && (
-                                <span className="font-bold text-[11px] tracking-widest uppercase whitespace-nowrap text-slate-600">
-                                  {advRate > 100 ? '>100' : advRate}% advance
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ── Stage card (Consistent Full Width with Inner Fill) ── */}
-                        <div 
-                          className="relative w-full rounded-2xl overflow-hidden border-2 shadow-sm group hover:scale-[1.02] transition-transform duration-300 bg-white"
-                          style={{ borderColor: `${stage.color}40` }}
-                        >
-                          {/* Inner Fill Bar */}
-                          <div 
-                            className="absolute top-0 left-0 h-full transition-all duration-700" 
-                            style={{ width: `${widthPct}%`, backgroundColor: `${stage.color}15` }} 
-                          />
-                          
-                          {/* Content inside the card */}
-                          <div className="relative z-10 flex items-center justify-between px-6 py-5">
-                            <div className="flex items-center gap-4 min-w-0 flex-1">
-                              <div className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm"
-                                   style={{ backgroundColor: stage.color }} />
-                              <span className="font-black text-xl text-slate-900 tracking-wide truncate">
-                                {stage.name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                              <span className="text-slate-500 font-bold text-xs uppercase tracking-widest hidden sm:block">
-                                {pctAll}% Total
-                              </span>
-                              <span className="font-black text-4xl tabular-nums" style={{ color: stage.color }}>
-                                {stage.count}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* ── Lost pill ── */}
-                  <div className="flex justify-center mt-8 w-full">
-                    <div className="inline-flex w-full justify-between items-center gap-6 px-8 py-5 rounded-2xl bg-rose-50 border-2 border-rose-200 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full bg-rose-600 shadow-sm" />
-                        <span className="text-rose-700 font-black text-xl tracking-widest uppercase">Closed — Lost</span>
-                      </div>
-                      <span className="text-rose-600 font-black text-4xl tabular-nums">{lostCount}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Stage colour legend ── */}
-                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6 border-t border-slate-200 mt-auto">
-                  {funnelData.map(s => (
-                    <div key={s.name} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                      <span className="font-bold text-xs text-slate-600 uppercase tracking-widest truncate">{s.name}</span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-rose-50 border border-rose-200 shadow-sm">
+                  <div className="w-3 h-3 rounded-full bg-rose-500 shadow-sm" />
+                  <span className="text-rose-700 font-bold text-sm tracking-widest uppercase">Closed — Lost: </span>
+                  <span className="text-rose-600 font-black text-xl tabular-nums">{lostCount}</span>
                 </div>
               </div>
 
-              {/* ════════════════════════════════════════════════
-                  CHART 2 — UPGRADED STACKED BAR CHART
-              ════════════════════════════════════════════════ */}
-              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-6 shadow-inner h-full">
-                <div className="pb-5 border-b border-slate-200">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Lead Volume by Source</h2>
-                  <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
-                    Stacked by temperature — 🔥 Hot · 🌡️ Warm · ❄️ Cold
-                  </p>
+              {/* Horizontal Funnel Track */}
+              <div className="flex items-stretch w-full gap-2 relative mt-4">
+                {funnelData.map((stage, index) => {
+                  const prevStage = index > 0 ? funnelData[index - 1] : null;
+                  const advRate   = prevStage && prevStage.count > 0
+                    ? Math.round((stage.count / prevStage.count) * 100)
+                    : null;
+
+                  return (
+                    <React.Fragment key={stage.name}>
+                      {/* ── Connector Arrow ── */}
+                      {index > 0 && (
+                        <div className="flex flex-col justify-center items-center px-1">
+                          <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                          {advRate !== null && (
+                            <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-widest whitespace-nowrap bg-white px-2 py-1 rounded-md border border-slate-200 shadow-sm">
+                              {advRate > 100 ? '>100' : advRate}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ── Stage Card ── */}
+                      <div 
+                        className="flex-1 rounded-2xl overflow-hidden border-2 shadow-sm bg-white relative flex flex-col justify-between group hover:-translate-y-1 transition-transform duration-300"
+                        style={{ borderColor: `${stage.color}30` }}
+                      >
+                        {/* Top Color Bar */}
+                        <div className="h-2 w-full" style={{ backgroundColor: stage.color }} />
+                        
+                        <div className="p-6 flex flex-col justify-between h-full gap-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
+                            <span className="font-bold text-sm text-slate-600 uppercase tracking-widest line-clamp-1">
+                              {stage.name}
+                            </span>
+                          </div>
+                          <div className="flex items-end justify-between">
+                            <span className="font-black text-5xl tabular-nums tracking-tight" style={{ color: stage.color }}>
+                              {stage.count}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ════════════════════════════════════════════════
+                FULL-WIDTH SOURCE × TEMPERATURE STACKED BAR
+            ════════════════════════════════════════════════ */}
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-6 shadow-inner w-full">
+              <div className="pb-5 border-b border-slate-200">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Lead Volume by Source</h2>
+                <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
+                  Stacked by temperature — 🔥 Hot · 🌡️ Warm · ❄️ Cold
+                </p>
+              </div>
+
+              {sourceData.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-slate-500 font-bold text-xl uppercase tracking-widest py-32">
+                  No source data available.
                 </div>
+              ) : (
+                <div className="flex flex-col xl:flex-row gap-10">
+                  
+                  {/* CHART SECTION */}
+                  <div className="flex-1 min-w-0">
+                    <ResponsiveContainer width="100%" height={500}>
+                      <BarChart
+                        data={sourceData}
+                        margin={{ top: 40, right: 10, left: -10, bottom: 80 }}
+                        barSize={80} // Massive, thick bars
+                      >
+                        <defs>
+                          <linearGradient id="coldGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#38bdf8" />
+                            <stop offset="100%" stopColor="#0284c7" />
+                          </linearGradient>
+                          <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fbbf24" />
+                            <stop offset="100%" stopColor="#ea580c" />
+                          </linearGradient>
+                          <linearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fb7185" />
+                            <stop offset="100%" stopColor="#e11d48" />
+                          </linearGradient>
+                        </defs>
 
-                {sourceData.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-slate-500 font-bold text-xl uppercase tracking-widest">
-                    No source data available.
+                        <CartesianGrid strokeDasharray="8 8" stroke="#cbd5e1" vertical={false} />
+                        <XAxis
+                          dataKey="source"
+                          tick={{ fill: '#334155', fontSize: 15, fontWeight: 900, fontFamily: 'sans-serif' }}
+                          axisLine={false}
+                          tickLine={false}
+                          angle={-40}
+                          textAnchor="end"
+                          interval={0}
+                          height={85}
+                          dy={15}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fill: '#64748b', fontSize: 16, fontWeight: 900, fontFamily: 'sans-serif' }}
+                          axisLine={false}
+                          tickLine={false}
+                          dx={-10}
+                        />
+                        <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+                        <Legend
+                          iconType="circle"
+                          iconSize={14}
+                          wrapperStyle={{ fontSize: 16, fontWeight: 800, fontFamily: 'sans-serif', paddingTop: 20 }}
+                          formatter={(value) => {
+                            const map = { Hot: '🔥 Hot', Warm: '🌡️ Warm', Cold: '❄️ Cold' };
+                            return <span style={{ color: TEMP_COLORS[value], marginLeft: 4 }}>{map[value]}</span>;
+                          }}
+                        />
+
+                        {/* Stack Segments */}
+                        <Bar dataKey="Cold" name="Cold" stackId="t" fill="url(#coldGrad)" stroke="#ffffff" strokeWidth={3} radius={[0, 0, 8, 8]}>
+                          <LabelList dataKey="Cold" content={InnerLabel} />
+                        </Bar>
+                        <Bar dataKey="Warm" name="Warm" stackId="t" fill="url(#warmGrad)" stroke="#ffffff" strokeWidth={3}>
+                          <LabelList dataKey="Warm" content={InnerLabel} />
+                        </Bar>
+                        <Bar dataKey="Hot" name="Hot" stackId="t" fill="url(#hotGrad)" stroke="#ffffff" strokeWidth={3} radius={[8, 8, 0, 0]}>
+                          <LabelList dataKey="Hot" content={InnerLabel} />
+                          <LabelList dataKey="total" content={TopLabel} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={450}>
-                    <BarChart
-                      data={sourceData}
-                      margin={{ top: 40, right: 10, left: -10, bottom: 80 }}
-                      barSize={80} // Massive, thick bars
-                    >
-                      {/* SVG Gradients for beautiful 3D-like volume */}
-                      <defs>
-                        <linearGradient id="coldGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#38bdf8" />
-                          <stop offset="100%" stopColor="#0284c7" />
-                        </linearGradient>
-                        <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fbbf24" />
-                          <stop offset="100%" stopColor="#ea580c" />
-                        </linearGradient>
-                        <linearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fb7185" />
-                          <stop offset="100%" stopColor="#e11d48" />
-                        </linearGradient>
-                      </defs>
 
-                      <CartesianGrid
-                        strokeDasharray="8 8"
-                        stroke="#cbd5e1"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="source"
-                        tick={{ fill: '#334155', fontSize: 15, fontWeight: 900, fontFamily: 'sans-serif' }}
-                        axisLine={false}
-                        tickLine={false}
-                        angle={-40}
-                        textAnchor="end"
-                        interval={0}
-                        height={85}
-                        dy={15}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fill: '#64748b', fontSize: 16, fontWeight: 900, fontFamily: 'sans-serif' }}
-                        axisLine={false}
-                        tickLine={false}
-                        dx={-10}
-                      />
-                      <Tooltip
-                        content={<BarTooltip />}
-                        cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                      />
-                      <Legend
-                        iconType="circle"
-                        iconSize={14}
-                        wrapperStyle={{ fontSize: 16, fontWeight: 800, fontFamily: 'sans-serif', paddingTop: 20 }}
-                        formatter={(value) => {
-                          const map = { Hot: '🔥 Hot', Warm: '🌡️ Warm', Cold: '❄️ Cold' };
-                          return <span style={{ color: TEMP_COLORS[value], marginLeft: 4 }}>{map[value]}</span>;
-                        }}
-                      />
-
-                      {/* Stack Segments with White Stroke for Block Separation */}
-                      <Bar dataKey="Cold" name="Cold" stackId="t" fill="url(#coldGrad)" stroke="#ffffff" strokeWidth={3} radius={[0, 0, 8, 8]}>
-                        <LabelList dataKey="Cold" content={InnerLabel} />
-                      </Bar>
-
-                      <Bar dataKey="Warm" name="Warm" stackId="t" fill="url(#warmGrad)" stroke="#ffffff" strokeWidth={3}>
-                        <LabelList dataKey="Warm" content={InnerLabel} />
-                      </Bar>
-
-                      <Bar dataKey="Hot" name="Hot" stackId="t" fill="url(#hotGrad)" stroke="#ffffff" strokeWidth={3} radius={[8, 8, 0, 0]}>
-                        <LabelList dataKey="Hot"   content={InnerLabel} />
-                        <LabelList dataKey="total" content={TopLabel} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-
-                {/* Source summary text/table with upgraded mini-bars */}
-                {sourceData.length > 0 && (
-                  <div className="pt-6 border-t border-slate-200 mt-auto">
-                    <p className="font-black text-xs text-slate-500 uppercase tracking-widest mb-4">
-                      Source Distribution
+                  {/* SUMMARY SECTION */}
+                  <div className="w-full xl:w-96 flex-shrink-0 flex flex-col border-t xl:border-t-0 xl:border-l border-slate-200 pt-6 xl:pt-0 xl:pl-10">
+                    <p className="font-black text-sm text-slate-500 uppercase tracking-widest mb-5">
+                      Source Breakdown
                     </p>
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-4 overflow-y-auto max-h-[500px] pr-2">
                       {sourceData.map(src => {
                         const hotPct  = src.total > 0 ? Math.round((src.Hot  / src.total) * 100) : 0;
                         const warmPct = src.total > 0 ? Math.round((src.Warm / src.total) * 100) : 0;
                         const coldPct = 100 - hotPct - warmPct;
                         return (
-                          <div key={src.source} className="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                            <span className="font-black text-sm text-slate-700 w-32 truncate flex-shrink-0">
-                              {src.source}
-                            </span>
-                            {/* Mini stacked progress bar using base colors */}
-                            <div className="flex-1 h-5 rounded-full overflow-hidden bg-slate-100 flex shadow-inner">
+                          <div key={src.source} className="flex flex-col gap-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-center">
+                              <span className="font-black text-base text-slate-700 truncate">
+                                {src.source}
+                              </span>
+                              <span className="font-black text-2xl tabular-nums text-purple-700 bg-purple-50 px-3 py-1 rounded-lg">
+                                {src.total}
+                              </span>
+                            </div>
+                            
+                            {/* Mini stacked progress bar */}
+                            <div className="w-full h-4 rounded-full overflow-hidden bg-slate-100 flex shadow-inner mt-2">
                               {hotPct > 0  && <div className="h-full transition-all border-r-2 border-white" style={{ width: `${hotPct}%`,  backgroundColor: TEMP_COLORS.Hot }} title={`${hotPct}% Hot`} />}
                               {warmPct > 0 && <div className="h-full transition-all border-r-2 border-white" style={{ width: `${warmPct}%`, backgroundColor: TEMP_COLORS.Warm }} title={`${warmPct}% Warm`} />}
                               {coldPct > 0 && <div className="h-full transition-all" style={{ width: `${coldPct}%`, backgroundColor: TEMP_COLORS.Cold }} title={`${coldPct}% Cold`} />}
                             </div>
-                            <span className="font-black text-xl tabular-nums text-slate-900 w-12 text-right flex-shrink-0">
-                              {src.total}
-                            </span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                )}
-              </div>
+                  
+                </div>
+              )}
             </div>
           </>
         )}
