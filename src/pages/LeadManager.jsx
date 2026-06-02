@@ -3,32 +3,57 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 
-// ── BULLETPROOF NOTE UTILITIES ─────────────────────────────────────────────
+// ── DATE FORMATTING UTILITY ────────────────────────────────────────────────
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return '—';
+  // Manually parse YYYY-MM-DD to completely avoid Timezone shift bugs
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  return dateStr;
+};
+
+// ── BULLETPROOF NOTE UTILITIES (UPGRADED PARSER) ───────────────────────────
 const parseNoteLines = (notesStr) => {
   if (typeof notesStr !== 'string') return [];
-  return notesStr.trim() ? notesStr.split('\n').filter(l => l.trim()) : [];
+  // SMART PARSER: Only splits when it sees a new timestamp block, preserving your "Enters" (newlines)
+  const regex = /\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\][\s\S]*?(?=\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\]|$)/g;
+  const matches = notesStr.match(regex);
+  return matches ? matches.map(m => m.trim()) : [];
 };
 
 const parseNoteEntry = (line) => {
   if (typeof line !== 'string') return { timestamp: null, user: null, text: '' };
-  const m = line.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] \[(.*?)\] ([\s\S]+)$/);
-  return m ? { timestamp: m[1], user: m[2], text: m[3].trim() } : { timestamp: null, user: null, text: line };
+  const m = line.match(/^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})\] \[(.*?)\] ([\s\S]+)$/);
+  if (m) {
+    const formattedDate = formatDisplayDate(m[1]);
+    return { 
+      timestamp: `${formattedDate} at ${m[2]}`, // e.g., "15 Aug 2026 at 14:30"
+      user: m[3], 
+      text: m[4].trim() 
+    };
+  }
+  return { timestamp: null, user: null, text: line };
 };
 
 const getLatestNotePreview = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return null;
   const parsed = parseNoteEntry(lines[lines.length - 1]);
-  const text = parsed?.text || '';
+  let text = parsed?.text || '';
+  text = text.replace(/\n/g, ' '); // Strip newlines just for the single-line table preview
   return text.length > 75 ? text.slice(0, 75) + '…' : text;
 };
 
 const getLatestNoteTimestamp = (notesStr) => {
   const lines = parseNoteLines(notesStr);
   if (!lines.length) return 0;
-  const { timestamp } = parseNoteEntry(lines[lines.length - 1]);
-  if (!timestamp) return 0;
-  const time = new Date(timestamp).getTime();
+  // Fallback to simple extraction for sorting purposes
+  const m = lines[lines.length - 1].match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]/);
+  if (!m) return 0;
+  const time = new Date(m[1]).getTime();
   return isNaN(time) ? 0 : time;
 };
 
@@ -42,18 +67,18 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// ── FLASHY VIBRANT BADGES (LARGE SCALE) ───────────────────────────────────────────
+// ── FLASHY VIBRANT BADGES (WITH MIDNIGHT BLACK "NEW") ────────────────────────
 const STATUS_STYLE = {
-  'New':           'bg-slate-600 text-white',
-  'Contacted':     'bg-blue-600 text-white',
-  'Quoted / Demo': 'bg-amber-500 text-white',
-  'Negotiation':   'bg-purple-600 text-white',
-  'Closed - Won':  'bg-emerald-600 text-white',
-  'Closed - Lost': 'bg-rose-600 text-white',
+  'New':           'bg-slate-900 text-white shadow-md', // Changed to Midnight Black
+  'Contacted':     'bg-blue-600 text-white shadow-md',
+  'Quoted / Demo': 'bg-amber-500 text-white shadow-md',
+  'Negotiation':   'bg-purple-600 text-white shadow-md',
+  'Closed - Won':  'bg-emerald-600 text-white shadow-md',
+  'Closed - Lost': 'bg-rose-600 text-white shadow-md',
 };
 
 const StatusBadge = ({ status }) => (
-  <span className={`px-4 py-2 rounded-lg font-sans text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap ${STATUS_STYLE[status] || STATUS_STYLE['New']}`}>
+  <span className={`px-4 py-2 rounded-lg font-sans text-sm font-black uppercase tracking-widest whitespace-nowrap ${STATUS_STYLE[status] || STATUS_STYLE['New']}`}>
     {status || 'New'}
   </span>
 );
@@ -340,8 +365,8 @@ export default function LeadManager() {
     filters.source.forEach(s    => chips.push({ label: `Source: ${s}`,  remove: () => toggleFilter('source', s) }));
     filters.status.forEach(s    => chips.push({ label: `Stage: ${s}`,   remove: () => toggleFilter('status', s) }));
     filters.lead_temp.forEach(t => chips.push({ label: `Temp: ${t}`,    remove: () => toggleFilter('lead_temp', t) }));
-    if (filters.dateStart) chips.push({ label: `From: ${filters.dateStart}`, remove: () => setFilters(p => ({ ...p, dateStart: '' })) });
-    if (filters.dateEnd)   chips.push({ label: `To: ${filters.dateEnd}`,     remove: () => setFilters(p => ({ ...p, dateEnd: '' })) });
+    if (filters.dateStart) chips.push({ label: `From: ${formatDisplayDate(filters.dateStart)}`, remove: () => setFilters(p => ({ ...p, dateStart: '' })) });
+    if (filters.dateEnd)   chips.push({ label: `To: ${formatDisplayDate(filters.dateEnd)}`,     remove: () => setFilters(p => ({ ...p, dateEnd: '' })) });
     if (filters.priceMin !== '') chips.push({ label: `Min ₹${Number(filters.priceMin).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMin: '' })) });
     if (filters.priceMax !== '') chips.push({ label: `Max ₹${Number(filters.priceMax).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMax: '' })) });
     return chips;
@@ -375,18 +400,18 @@ export default function LeadManager() {
   const handleDownloadExcel = () => {
     if (!processedLeads.length) return;
     const excelData = processedLeads.map(l => ({
-      'Date': l.date || '', 'Source': l.source || '', 'Client Name': l.name || '',
+      'Date': formatDisplayDate(l.date) || '', 'Source': l.source || '', 'Client Name': l.name || '',
       'Company': l.company_name || '', 'Phone': l.phone || '', 'Location': l.location || '',
-      'Requirement': l.requirement || '', 'Tentative Call': l.tentative_call_date || '',
-      'GMeet Date': l.gmeet_date || '', 'Pipeline Stage': l.status || 'New',
+      'Requirement': l.requirement || '', 'Tentative Call': formatDisplayDate(l.tentative_call_date) || '',
+      'GMeet Date': formatDisplayDate(l.gmeet_date) || '', 'Pipeline Stage': l.status || 'New',
       'Temperature': l.lead_temp || 'Cold', 'Value (₹)': Number(l.price) || 0,
       'Lost Reason': l.lost_reason || '', 'Internal Notes': l.notes || '',
     }));
     const ws = XLSX.utils.json_to_sheet(excelData);
-    ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 24 }, { wch: 24 }, { wch: 15 }, { wch: 18 }, { wch: 38 }, { wch: 14 }, { wch: 14 }, { wch: 15 }, { wch: 12 }, { wch: 14 }, { wch: 24 }, { wch: 50 }];
+    ws['!cols'] = [{ wch: 15 }, { wch: 14 }, { wch: 24 }, { wch: 24 }, { wch: 15 }, { wch: 18 }, { wch: 38 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 14 }, { wch: 24 }, { wch: 50 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Filtered Leads');
-    XLSX.writeFile(wb, `LeadManager_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `LeadManager_Export_${todayStr}.xlsx`);
   };
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
@@ -398,12 +423,12 @@ export default function LeadManager() {
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ════════════════════════════════════════════════════════════════════
-          PROFILE MODAL (SCALED UP)
+          PROFILE MODAL (SCALED UP WITH TIMELINE FEED)
       ════════════════════════════════════════════════════════════════════ */}
       {profileLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-[90rem] shadow-2xl flex flex-col overflow-hidden"
-               style={{ maxHeight: '92vh' }}>
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-[95rem] shadow-2xl flex flex-col overflow-hidden"
+               style={{ maxHeight: '94vh' }}>
             
             <div className="flex-shrink-0 flex justify-between items-start px-10 py-8 border-b border-slate-200 bg-slate-50/50">
               <div className="flex items-start gap-6 flex-1 min-w-0">
@@ -425,7 +450,7 @@ export default function LeadManager() {
               </button>
             </div>
 
-            <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/30">
+            <div className="flex flex-1 min-h-0 overflow-hidden bg-white">
               {/* LEFT: Edit Form */}
               <div className="flex-1 overflow-y-auto p-10 flex flex-col gap-10 min-w-0">
                 <section>
@@ -441,7 +466,7 @@ export default function LeadManager() {
                         <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">{label}</label>
                         <input type={type} value={editData[field] || ''}
                           onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow shadow-sm font-medium" />
+                          className="bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-all shadow-sm font-medium" />
                       </div>
                     ))}
                   </div>
@@ -451,7 +476,7 @@ export default function LeadManager() {
                   <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Requirement</p>
                   <textarea value={editData.requirement || ''} rows={4}
                     onChange={e => handleEditChange('requirement', e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm font-medium leading-relaxed" />
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-sm font-medium leading-relaxed" />
                 </section>
 
                 <section>
@@ -460,14 +485,14 @@ export default function LeadManager() {
                     <div className="flex flex-col gap-2.5">
                       <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Pipeline Stage</label>
                       <select value={editData.status || 'New'} onChange={e => handleEditChange('status', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm transition-all">
                         {pipelineStages.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-2.5">
                       <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Temperature</label>
                       <select value={editData.lead_temp || 'Cold'} onChange={e => handleEditChange('lead_temp', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm transition-all">
                         <option value="Cold">❄️ Cold</option>
                         <option value="Warm">🌡️ Warm</option>
                         <option value="Hot">🔥 Hot</option>
@@ -477,7 +502,7 @@ export default function LeadManager() {
                       <div className="col-span-2 flex flex-col gap-2.5">
                         <label className="font-bold text-sm text-rose-600 uppercase tracking-widest">Lost Reason</label>
                         <select value={editData.lost_reason || ''} onChange={e => handleEditChange('lost_reason', e.target.value)}
-                          className="bg-rose-50 border border-rose-300 rounded-xl px-5 py-4 text-rose-800 font-bold text-lg focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500 cursor-pointer shadow-sm">
+                          className="bg-rose-50 border border-rose-300 rounded-xl px-5 py-4 text-rose-800 font-bold text-lg focus:outline-none focus:bg-white focus:border-rose-500 focus:ring-2 focus:ring-rose-500 cursor-pointer shadow-sm transition-all">
                           <option value="">— Select reason —</option>
                           {lostReasons.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
@@ -485,8 +510,8 @@ export default function LeadManager() {
                     )}
                     <div className="flex flex-col gap-2.5">
                       <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Value (₹)</label>
-                      <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-300 transition-shadow shadow-sm">
-                        <span className="px-5 text-emerald-700 font-mono font-black text-xl bg-slate-50 border-r border-slate-200 py-4">₹</span>
+                      <div className="flex items-center bg-slate-50 border border-slate-300 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-300 transition-all shadow-sm">
+                        <span className="px-5 text-emerald-700 font-mono font-black text-xl border-r border-slate-200 py-4">₹</span>
                         <input type="number" value={editData.price || ''} onChange={e => handleEditChange('price', e.target.value)}
                           className="flex-1 bg-transparent py-4 px-4 text-slate-900 font-mono font-black text-xl focus:outline-none" />
                       </div>
@@ -494,7 +519,7 @@ export default function LeadManager() {
                     <div className="flex flex-col gap-2.5">
                       <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Source</label>
                       <select value={editData.source || 'Website'} onChange={e => handleEditChange('source', e.target.value)}
-                        className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm">
+                        className="bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm transition-all">
                         {['Website','YouTube','LinkedIn','Direct','Referral','Alibaba','IndiaMart','TradeIndia','Manual Entry'].map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -514,24 +539,24 @@ export default function LeadManager() {
                       <div key={field} className="flex flex-col gap-2.5">
                         <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">{label}</label>
                         <input type="date" value={editData[field] || ''} onChange={e => handleEditChange(field, e.target.value)}
-                          className="bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow cursor-pointer shadow-sm" />
+                          className="bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-mono font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-all cursor-pointer shadow-sm" />
                       </div>
                     ))}
                   </div>
                 </section>
               </div>
 
-              {/* RIGHT: Notes Feed */}
-              <div className="w-[500px] flex-shrink-0 flex flex-col border-l border-slate-200 overflow-hidden bg-white">
-                <div className="flex-shrink-0 p-8 border-b border-slate-200 bg-slate-50">
-                  <p className="font-black text-xl text-slate-800 mb-4">Append Update</p>
+              {/* RIGHT: TIMELINE NOTES FEED */}
+              <div className="w-[550px] flex-shrink-0 flex flex-col border-l-2 border-slate-200 overflow-hidden bg-slate-50/50">
+                <div className="flex-shrink-0 p-8 border-b-2 border-slate-200 bg-white shadow-sm z-10">
+                  <p className="font-black text-2xl text-slate-900 mb-4">Append Update</p>
                   <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
                     placeholder="Type update or interaction..."
-                    className="w-full bg-white border border-slate-300 rounded-xl p-5 text-slate-900 font-medium text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-shadow shadow-sm leading-relaxed"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-2xl p-5 text-slate-900 font-medium text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-inner leading-relaxed"
                     style={{ height: '140px' }} />
                   <div className="flex flex-col gap-4 mt-5">
                     <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-bold text-base focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] truncate cursor-pointer shadow-sm">
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-3.5 text-slate-800 font-bold text-base focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] truncate cursor-pointer shadow-sm transition-all">
                       {users.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                     <button onClick={handleAppendNote} disabled={isAppending || !newNote.trim()}
@@ -541,37 +566,44 @@ export default function LeadManager() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-5 bg-[#EBA7FF]/5">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-black text-xl text-slate-800">Activity Log</span>
-                    <span className="bg-white text-purple-900 border border-[#EBA7FF]/50 px-4 py-1.5 rounded-lg text-sm font-mono font-bold">
+                <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-gradient-to-b from-slate-50 to-[#EBA7FF]/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-black text-xl text-slate-800">Timeline Feed</span>
+                    <span className="bg-purple-100 text-purple-900 border border-purple-200 px-4 py-1.5 rounded-lg text-sm font-mono font-bold shadow-sm">
                       {parseNoteLines(profileLead.notes).length} entries
                     </span>
                   </div>
                   {parseNoteLines(profileLead.notes).length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-5 py-10 text-center opacity-60">
-                      <span className="text-6xl text-slate-300">📝</span>
-                      <span className="text-slate-500 font-medium text-lg">No notes recorded yet.</span>
+                      <span className="text-6xl text-slate-300">💬</span>
+                      <span className="text-slate-500 font-bold text-lg">No interaction history yet.</span>
                     </div>
                   ) : (
                     [...parseNoteLines(profileLead.notes)].reverse().map((line, i) => {
                       const { timestamp, user, text } = parseNoteEntry(line);
                       const isFirst = i === 0;
                       return (
-                        <div key={i}
-                          className={`rounded-2xl p-6 flex flex-col gap-3.5 border transition-all ${
-                            isFirst ? 'bg-white border-[#EBA7FF] shadow-[0_0_20px_rgba(235,167,255,0.3)] ring-1 ring-[#EBA7FF]' : 'bg-white border-slate-200 shadow-sm'
+                        <div key={i} className="flex flex-col gap-2 relative">
+                          {/* Timeline spine dot */}
+                          <div className={`absolute -left-3 top-6 w-1.5 h-1.5 rounded-full ${isFirst ? 'bg-purple-600' : 'bg-slate-300'}`}></div>
+                          
+                          <div className={`rounded-2xl p-6 flex flex-col gap-4 border transition-all ml-4 ${
+                            isFirst ? 'bg-white border-[#EBA7FF] shadow-[0_10px_30px_rgba(235,167,255,0.25)] ring-2 ring-[#EBA7FF]/30' : 'bg-white border-slate-200 shadow-sm'
                           }`}>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className={`font-black text-lg truncate ${isFirst ? 'text-purple-900' : 'text-slate-800'}`}>
-                              {user || 'Unknown'}
-                            </span>
-                            <span className="text-slate-500 font-mono text-xs font-bold flex-shrink-0">
-                              {timestamp || '—'}
-                            </span>
+                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                              <span className={`font-black text-lg truncate ${isFirst ? 'text-purple-900' : 'text-slate-800'}`}>
+                                {user || 'Unknown'}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px] font-bold uppercase tracking-widest flex-shrink-0 bg-slate-50 px-2 py-1 rounded">
+                                {timestamp || '—'}
+                              </span>
+                            </div>
+                            {/* whitespace-pre-wrap ensures multiline formatting is fully respected */}
+                            <p className={`text-[17px] whitespace-pre-wrap leading-relaxed font-medium ${isFirst ? 'text-slate-900' : 'text-slate-700'}`}>
+                              {text}
+                            </p>
+                            {isFirst && <span className="font-mono text-xs text-[#EBA7FF] uppercase tracking-widest mt-1 font-black">↑ Latest Update</span>}
                           </div>
-                          <p className={`text-lg leading-relaxed font-medium ${isFirst ? 'text-slate-900' : 'text-slate-700'}`}>{text}</p>
-                          {isFirst && <span className="font-mono text-xs text-[#EBA7FF] uppercase tracking-widest mt-2 font-black">↑ Most Recent</span>}
                         </div>
                       );
                     })
@@ -639,7 +671,7 @@ export default function LeadManager() {
                               {alert.alertType}
                             </span>
                             <span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">
-                              {alert.alertDate}
+                              {formatDisplayDate(alert.alertDate)}
                             </span>
                           </div>
                           <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
@@ -681,7 +713,7 @@ export default function LeadManager() {
                               {alert.alertType}
                             </span>
                             <span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">
-                              {alert.alertDate}
+                              {formatDisplayDate(alert.alertDate)}
                             </span>
                           </div>
                           <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
@@ -874,6 +906,7 @@ export default function LeadManager() {
                     const on = stage === 'Closed - Won' ? 'bg-emerald-600 border-emerald-700 text-white shadow-md'
                              : stage === 'Closed - Lost' ? 'bg-rose-600 border-rose-700 text-white shadow-md'
                              : stage === 'Negotiation' ? 'bg-purple-600 border-purple-700 text-white shadow-md'
+                             : stage === 'New' ? 'bg-slate-900 border-slate-950 text-white shadow-md'
                              : 'bg-blue-600 border-blue-700 text-white shadow-md';
                     return (
                       <button key={stage} onClick={() => toggleFilter('status', stage)}
@@ -996,7 +1029,6 @@ export default function LeadManager() {
                         
                         <td className="py-6 px-5">
                           <div className="flex items-center gap-4">
-                            {/* Restored Purple Gradient Avatar */}
                             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-purple-900 to-[#EBA7FF] border-2 border-purple-700 flex items-center justify-center text-white font-black text-base shadow-sm">
                               {getInitials(lead.name)}
                             </div>
@@ -1017,7 +1049,7 @@ export default function LeadManager() {
                         <td className="py-6 px-5">
                           {latestNote ? (
                             <div className="flex flex-col gap-2 bg-slate-100/50 group-hover:bg-white p-4 rounded-xl border border-slate-200 transition-colors shadow-sm">
-                              <p className="text-slate-700 text-base leading-relaxed line-clamp-2 italic font-medium">"{latestNote}"</p>
+                              <p className="text-slate-700 text-base leading-relaxed line-clamp-2 italic font-medium truncate">"{latestNote}"</p>
                               {noteCount > 1 && <span className="text-purple-800 font-bold text-xs uppercase tracking-widest">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : (
@@ -1027,7 +1059,6 @@ export default function LeadManager() {
                         
                         <td className="py-6 px-5 text-center">
                           <div className="flex flex-col items-center gap-2.5">
-                            {/* Solid Background Flashy Badges restored */}
                             <StatusBadge status={lead.status} />
                             {lead.status === 'Closed - Lost' && lead.lost_reason && (
                               <span className="text-xs text-rose-800 font-bold font-mono truncate max-w-[160px] px-3 py-1.5 bg-rose-100 rounded-lg border border-rose-300 shadow-sm" title={lead.lost_reason}>
@@ -1042,22 +1073,21 @@ export default function LeadManager() {
                         </td>
                         
                         <td className="py-6 px-5 text-right">
-                          {/* Flashy Green Text for Money Restored */}
                           <span className="text-emerald-600 font-mono text-xl font-black tabular-nums">
                             {lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-lg">—</span>}
                           </span>
                         </td>
                         
                         <td className="py-6 px-5 text-center">
-                          <div className="flex flex-col gap-2 items-start bg-slate-100 group-hover:bg-white p-3.5 rounded-xl border border-slate-200 w-fit mx-auto min-w-[130px] transition-colors shadow-sm">
-                            {lead.tentative_call_date && <span className="tabular-nums text-sm text-blue-800 font-bold flex items-center gap-2">📞 {lead.tentative_call_date}</span>}
-                            {lead.gmeet_date && <span className="tabular-nums text-sm text-purple-800 font-bold flex items-center gap-2">📹 {lead.gmeet_date}</span>}
+                          <div className="flex flex-col gap-2 items-start bg-slate-100 group-hover:bg-white p-3.5 rounded-xl border border-slate-200 w-fit mx-auto min-w-[150px] transition-colors shadow-sm">
+                            {lead.tentative_call_date && <span className="tabular-nums text-sm text-blue-800 font-bold flex items-center gap-2">📞 {formatDisplayDate(lead.tentative_call_date)}</span>}
+                            {lead.gmeet_date && <span className="tabular-nums text-sm text-purple-800 font-bold flex items-center gap-2">📹 {formatDisplayDate(lead.gmeet_date)}</span>}
                             {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-medium text-sm mx-auto py-1 italic">Unscheduled</span>}
                           </div>
                         </td>
                         
                         <td className="py-6 px-5">
-                          <span className="text-slate-700 tabular-nums font-bold text-base">{lead.date || '—'}</span>
+                          <span className="text-slate-700 tabular-nums font-bold text-base whitespace-nowrap">{formatDisplayDate(lead.date)}</span>
                         </td>
                         
                         <td className="py-6 px-5">
