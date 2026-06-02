@@ -20,14 +20,14 @@ export default function Login() {
     const password = credentials.password;
     
     // 🛑 ROLE-BASED AUTHENTICATION
-    if (username === 'Admin' && password === 'Amarnaathh@2026') {
+    if (username === 'admin' && password === 'Amarnaathh@2026') {
       // 1. Log the Admin In
       localStorage.setItem('isLoggedIn', 'true');
       // 2. Save their specific Role (We will use this later to show everything)
       localStorage.setItem('userRole', 'Admin');
       navigate('/home'); 
 
-    } else if (username === 'BDE' && password === 'Amarnaathh@1998') {
+    } else if (username === 'bde' && password === 'Amarnaathh@1998') {
       // 1. Log the BME In
       localStorage.setItem('isLoggedIn', 'true');
       // 2. Save their specific Role (We will use this later to hide things)
