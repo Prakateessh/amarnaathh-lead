@@ -221,6 +221,8 @@ export default function ManualEntry() {
                 <option value="Direct">📞 Direct Call / Walk-in</option>
                 <option value="Referral">🤝 Referral</option>
                 <option value="Manual Entry">📝 Manual Entry</option>
+                <option value="IndiaMart">🛒 IndiaMart</option>
+                <option value="TradeIndia">📦 TradeIndia</option>
               </select>
             </div>
 
