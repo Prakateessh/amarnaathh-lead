@@ -333,6 +333,19 @@ export default function LeadManager() {
     setSortConfig({ key: null, direction: 'asc' });
   };
 
+  // ── 🚨 RESTORED MISSING ACTIVE CHIPS LOGIC 🚨 ──────────────────────────────
+  const activeChips = useMemo(() => {
+    const chips = [];
+    filters.source.forEach(s    => chips.push({ label: `Source: ${s}`,  remove: () => toggleFilter('source', s) }));
+    filters.status.forEach(s    => chips.push({ label: `Stage: ${s}`,   remove: () => toggleFilter('status', s) }));
+    filters.lead_temp.forEach(t => chips.push({ label: `Temp: ${t}`,    remove: () => toggleFilter('lead_temp', t) }));
+    if (filters.dateStart) chips.push({ label: `From: ${formatDisplayDate(filters.dateStart)}`, remove: () => setFilters(p => ({ ...p, dateStart: '' })) });
+    if (filters.dateEnd)   chips.push({ label: `To: ${formatDisplayDate(filters.dateEnd)}`,     remove: () => setFilters(p => ({ ...p, dateEnd: '' })) });
+    if (filters.priceMin !== '') chips.push({ label: `Min ₹${Number(filters.priceMin).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMin: '' })) });
+    if (filters.priceMax !== '') chips.push({ label: `Max ₹${Number(filters.priceMax).toLocaleString('en-IN')}`, remove: () => setFilters(p => ({ ...p, priceMax: '' })) });
+    return chips;
+  }, [filters]);
+
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
   const SortBtn = ({ col }) => (
     <button onClick={e => { e.stopPropagation(); handleSort(col); }} className={`ml-2 text-sm transition-all hover:scale-125 ${sortConfig.key === col ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -801,6 +814,18 @@ export default function LeadManager() {
           {showFilters && (
             <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col gap-8 mt-2 shadow-inner">
               <div className="flex flex-col gap-4">
+                <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Source</span>
+                <div className="flex flex-wrap gap-3">
+                  {uniqueSources.map(src => (
+                    <button key={src} onClick={() => toggleFilter('source', src)}
+                      className={`px-5 py-2.5 rounded-xl font-bold text-base border transition-all shadow-sm ${filters.source.includes(src) ? 'bg-purple-900 border-purple-950 text-white shadow-[0_0_15px_rgba(235,167,255,0.4)]' : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>
+                      {filters.source.includes(src) && '✓ '}{src}
+                    </button>
+                  ))}
+                  {!uniqueSources.length && <span className="text-slate-500 font-medium text-lg">No sources loaded.</span>}
+                </div>
+              </div>
+              <div className="flex flex-col gap-4">
                 <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Pipeline Stage</span>
                 <div className="flex flex-wrap gap-3">
                   {pipelineStages.map(stage => {
@@ -815,6 +840,24 @@ export default function LeadManager() {
                   {[{ val:'Hot', label:'🔥 Hot', on:'bg-rose-600 border-rose-700 text-white shadow-md' }, { val:'Warm', label:'🌡️ Warm', on:'bg-amber-500 border-amber-600 text-white shadow-md' }, { val:'Cold', label:'❄️ Cold', on:'bg-cyan-600 border-cyan-700 text-white shadow-md' }].map(({ val, label, on }) => (
                     <button key={val} onClick={() => toggleFilter('lead_temp', val)} className={`px-6 py-3 rounded-xl font-bold text-base border transition-all shadow-sm ${filters.lead_temp.includes(val) ? on : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10'}`}>{filters.lead_temp.includes(val) && '✓ '}{label}</button>
                   ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-4 border-t border-slate-200 pt-8">
+                <div className="flex flex-col gap-4">
+                  <span className="font-black text-sm text-slate-500 uppercase tracking-widest">Date Range</span>
+                  <div className="flex items-center gap-4">
+                    <input type="date" value={filters.dateStart} onChange={e => setFilters(p => ({ ...p, dateStart: e.target.value }))} className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
+                    <span className="text-slate-400 font-black text-2xl">→</span>
+                    <input type="date" value={filters.dateEnd} onChange={e => setFilters(p => ({ ...p, dateEnd: e.target.value }))} className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <span className="font-black text-sm text-slate-500 uppercase tracking-widest">Value Range (₹)</span>
+                  <div className="flex items-center gap-4">
+                    <input type="number" value={filters.priceMin} onChange={e => setFilters(p => ({ ...p, priceMin: e.target.value }))} placeholder="Min" className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
+                    <span className="text-slate-400 font-black text-2xl">→</span>
+                    <input type="number" value={filters.priceMax} onChange={e => setFilters(p => ({ ...p, priceMax: e.target.value }))} placeholder="Max" className="flex-1 bg-white border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] placeholder:text-slate-400 shadow-sm" />
+                  </div>
                 </div>
               </div>
             </div>
