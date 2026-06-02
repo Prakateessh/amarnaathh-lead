@@ -8,10 +8,10 @@ import {
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 const PIPELINE_STAGES = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
-// Slightly more saturated/vibrant colors for the light theme
 const STAGE_COLORS    = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#10b981']; 
-// High-visibility, thick colors for the Bar Chart
-const TEMP_COLORS     = { Hot: '#ef4444', Warm: '#f59e0b', Cold: '#3b82f6' };
+
+// Base colors used for HTML elements (legends, tooltips, mini-bars)
+const TEMP_COLORS     = { Hot: '#e11d48', Warm: '#ea580c', Cold: '#0284c7' };
 
 export default function DetailedAnalytics() {
   const navigate = useNavigate();
@@ -47,7 +47,6 @@ export default function DetailedAnalytics() {
   const wonCount    = leads.filter(l => l.status === 'Closed - Won').length;
   const closedTotal = wonCount + lostCount;
   const winRate     = closedTotal > 0 ? ((wonCount / closedTotal) * 100).toFixed(1) : '—';
-  // Use absolute max to ensure accurate relative scaling
   const funnelMax   = Math.max(...funnelData.map(d => d.count), 1);
 
   // ── SOURCE × TEMPERATURE DATA ─────────────────────────────────────────────────
@@ -67,46 +66,50 @@ export default function DetailedAnalytics() {
       .sort((a, b) => b.total - a.total);
   }, [leads]);
 
-  // ── CUSTOM TOOLTIP (Thick & Vibrant) ──────────────────────────────────────────────
+  // ── CUSTOM TOOLTIP (Vibrant & Scaled) ──────────────────────────────────────────────
   const BarTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
     return (
-      <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] font-sans min-w-[200px]">
+      <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-[0_15px_40px_rgba(0,0,0,0.12)] font-sans min-w-[200px] transform transition-all">
         <p className="text-slate-900 text-lg font-black mb-3 border-b border-slate-100 pb-2">{label}</p>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {[...payload].reverse().map((p, i) => (
             <div key={i} className="flex justify-between items-center text-sm font-bold">
-              <span className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: p.fill }}></span>
+              <span className="flex items-center gap-2.5">
+                <span className="w-3.5 h-3.5 rounded-full shadow-inner" style={{ backgroundColor: TEMP_COLORS[p.name] || p.fill }}></span>
                 <span className="text-slate-600 uppercase tracking-widest text-xs">{p.name}</span>
               </span>
-              <span className="text-slate-900 tabular-nums text-base">{p.value}</span>
+              <span className="text-slate-900 tabular-nums text-base bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{p.value}</span>
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-          <span className="text-slate-400 font-black text-xs uppercase tracking-widest">Total</span>
-          <span className="text-purple-700 font-black text-xl tabular-nums">{total}</span>
+        <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-5 -mb-5 px-5 py-4 rounded-b-xl">
+          <span className="text-slate-500 font-black text-xs uppercase tracking-widest">Total Leads</span>
+          <span className="text-purple-700 font-black text-2xl tabular-nums">{total}</span>
         </div>
       </div>
     );
   };
 
-  // ── LABEL RENDERERS ───────────────────────────────────────────────────────────
+  // ── LABEL RENDERERS (With Halo Effect) ───────────────────────────────────────────────────────────
   const InnerLabel = ({ x, y, width, height, value }) =>
     value > 0 ? (
-      <text x={x + width / 2} y={y + height / 2} textAnchor="middle"
-        dominantBaseline="central" fill="white" fontSize={16}
-        fontFamily="sans-serif" fontWeight="900">
-        {value}
-      </text>
+      <g>
+        {/* Dark translucent halo for massive contrast */}
+        <circle cx={x + width / 2} cy={y + height / 2} r="14" fill="rgba(0,0,0,0.15)" />
+        <text x={x + width / 2} y={y + height / 2} textAnchor="middle"
+          dominantBaseline="central" fill="#ffffff" fontSize={16}
+          fontFamily="sans-serif" fontWeight="900">
+          {value}
+        </text>
+      </g>
     ) : null;
 
   const TopLabel = ({ x, y, width, value }) =>
     value > 0 ? (
       <text x={x + width / 2} y={y - 12} textAnchor="middle"
-        fill="#475569" fontSize={18} fontFamily="sans-serif" fontWeight="900">
+        fill="#334155" fontSize={20} fontFamily="sans-serif" fontWeight="900">
         {value}
       </text>
     ) : null;
@@ -189,7 +192,7 @@ export default function DetailedAnalytics() {
               {/* ════════════════════════════════════════════════
                   CHART 1 — SALES FUNNEL (Consistent Widths)
               ════════════════════════════════════════════════ */}
-              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner">
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner h-full">
                 <div className="pb-5 border-b border-slate-200">
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Sales Funnel</h2>
                   <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
@@ -278,7 +281,7 @@ export default function DetailedAnalytics() {
                 </div>
 
                 {/* ── Stage colour legend ── */}
-                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6 border-t border-slate-200 mt-4">
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6 border-t border-slate-200 mt-auto">
                   {funnelData.map(s => (
                     <div key={s.name} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
@@ -289,7 +292,7 @@ export default function DetailedAnalytics() {
               </div>
 
               {/* ════════════════════════════════════════════════
-                  CHART 2 — SOURCE × TEMPERATURE STACKED BAR
+                  CHART 2 — UPGRADED STACKED BAR CHART
               ════════════════════════════════════════════════ */}
               <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-6 shadow-inner h-full">
                 <div className="pb-5 border-b border-slate-200">
@@ -307,28 +310,44 @@ export default function DetailedAnalytics() {
                   <ResponsiveContainer width="100%" height={450}>
                     <BarChart
                       data={sourceData}
-                      margin={{ top: 30, right: 10, left: -20, bottom: 80 }}
-                      barSize={70} /* Enforces thicker, highly visible bars */
+                      margin={{ top: 40, right: 10, left: -10, bottom: 80 }}
+                      barSize={80} // Massive, thick bars
                     >
+                      {/* SVG Gradients for beautiful 3D-like volume */}
+                      <defs>
+                        <linearGradient id="coldGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#38bdf8" />
+                          <stop offset="100%" stopColor="#0284c7" />
+                        </linearGradient>
+                        <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#fbbf24" />
+                          <stop offset="100%" stopColor="#ea580c" />
+                        </linearGradient>
+                        <linearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#fb7185" />
+                          <stop offset="100%" stopColor="#e11d48" />
+                        </linearGradient>
+                      </defs>
+
                       <CartesianGrid
-                        strokeDasharray="4 4"
+                        strokeDasharray="8 8"
                         stroke="#cbd5e1"
                         vertical={false}
                       />
                       <XAxis
                         dataKey="source"
-                        tick={{ fill: '#334155', fontSize: 14, fontWeight: 800, fontFamily: 'sans-serif' }}
+                        tick={{ fill: '#334155', fontSize: 15, fontWeight: 900, fontFamily: 'sans-serif' }}
                         axisLine={false}
                         tickLine={false}
                         angle={-40}
                         textAnchor="end"
                         interval={0}
                         height={85}
-                        dy={10}
+                        dy={15}
                       />
                       <YAxis
                         allowDecimals={false}
-                        tick={{ fill: '#64748b', fontSize: 16, fontWeight: 800, fontFamily: 'sans-serif' }}
+                        tick={{ fill: '#64748b', fontSize: 16, fontWeight: 900, fontFamily: 'sans-serif' }}
                         axisLine={false}
                         tickLine={false}
                         dx={-10}
@@ -347,20 +366,16 @@ export default function DetailedAnalytics() {
                         }}
                       />
 
-                      {/* Cold — bottom segment */}
-                      <Bar dataKey="Cold" name="Cold" stackId="t"
-                           fill={TEMP_COLORS.Cold} radius={[0, 0, 8, 8]}>
+                      {/* Stack Segments with White Stroke for Block Separation */}
+                      <Bar dataKey="Cold" name="Cold" stackId="t" fill="url(#coldGrad)" stroke="#ffffff" strokeWidth={3} radius={[0, 0, 8, 8]}>
                         <LabelList dataKey="Cold" content={InnerLabel} />
                       </Bar>
 
-                      {/* Warm — middle segment */}
-                      <Bar dataKey="Warm" name="Warm" stackId="t" fill={TEMP_COLORS.Warm}>
+                      <Bar dataKey="Warm" name="Warm" stackId="t" fill="url(#warmGrad)" stroke="#ffffff" strokeWidth={3}>
                         <LabelList dataKey="Warm" content={InnerLabel} />
                       </Bar>
 
-                      {/* Hot — top segment + total above bar */}
-                      <Bar dataKey="Hot" name="Hot" stackId="t"
-                           fill={TEMP_COLORS.Hot} radius={[8, 8, 0, 0]}>
+                      <Bar dataKey="Hot" name="Hot" stackId="t" fill="url(#hotGrad)" stroke="#ffffff" strokeWidth={3} radius={[8, 8, 0, 0]}>
                         <LabelList dataKey="Hot"   content={InnerLabel} />
                         <LabelList dataKey="total" content={TopLabel} />
                       </Bar>
@@ -368,7 +383,7 @@ export default function DetailedAnalytics() {
                   </ResponsiveContainer>
                 )}
 
-                {/* Source summary text/table */}
+                {/* Source summary text/table with upgraded mini-bars */}
                 {sourceData.length > 0 && (
                   <div className="pt-6 border-t border-slate-200 mt-auto">
                     <p className="font-black text-xs text-slate-500 uppercase tracking-widest mb-4">
@@ -384,10 +399,10 @@ export default function DetailedAnalytics() {
                             <span className="font-black text-sm text-slate-700 w-32 truncate flex-shrink-0">
                               {src.source}
                             </span>
-                            {/* Mini stacked progress bar */}
+                            {/* Mini stacked progress bar using base colors */}
                             <div className="flex-1 h-5 rounded-full overflow-hidden bg-slate-100 flex shadow-inner">
-                              {hotPct > 0  && <div className="h-full transition-all" style={{ width: `${hotPct}%`,  backgroundColor: TEMP_COLORS.Hot }} title={`${hotPct}% Hot`} />}
-                              {warmPct > 0 && <div className="h-full transition-all" style={{ width: `${warmPct}%`, backgroundColor: TEMP_COLORS.Warm }} title={`${warmPct}% Warm`} />}
+                              {hotPct > 0  && <div className="h-full transition-all border-r-2 border-white" style={{ width: `${hotPct}%`,  backgroundColor: TEMP_COLORS.Hot }} title={`${hotPct}% Hot`} />}
+                              {warmPct > 0 && <div className="h-full transition-all border-r-2 border-white" style={{ width: `${warmPct}%`, backgroundColor: TEMP_COLORS.Warm }} title={`${warmPct}% Warm`} />}
                               {coldPct > 0 && <div className="h-full transition-all" style={{ width: `${coldPct}%`, backgroundColor: TEMP_COLORS.Cold }} title={`${coldPct}% Cold`} />}
                             </div>
                             <span className="font-black text-xl tabular-nums text-slate-900 w-12 text-right flex-shrink-0">
