@@ -21,6 +21,10 @@ const formatDisplayDate = (dateStr) => {
 export default function Home() {
   const navigate = useNavigate();
 
+  // 🛑 RBAC (Role-Based Access Control)
+  const userRole = localStorage.getItem('userRole') || 'BME';
+  const isAdmin = userRole === 'Admin';
+
   // === REMINDERS & CALENDAR STATE ===
   const [showReminders, setShowReminders] = useState(false);
   const [calendarLeads, setCalendarLeads] = useState([]);
@@ -230,7 +234,7 @@ export default function Home() {
 
         {/* Section 3: The Database Button */}
         <button
-          onClick={() => navigate('/database')}
+          onClick={() => navigate(isAdmin ? '/database' : '/leadmanager')}
           className="bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 text-white font-black text-xl tracking-widest uppercase rounded-2xl w-full max-w-md h-20 transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(235,167,255,0.6)] flex items-center justify-center gap-4"
         >
           <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
