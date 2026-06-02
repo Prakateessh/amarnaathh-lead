@@ -79,6 +79,9 @@ const TempBadge = ({ temp }) => {
 export default function LeadManager() {
   const navigate = useNavigate();
 
+  const userRole = localStorage.getItem('userRole') || 'BME';
+  const isAdmin = userRole === 'Admin';
+
   const [leads, setLeads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -762,8 +765,9 @@ export default function LeadManager() {
           MAIN PAGE CONTENT
       ════════════════════════════════════════════════════════════════════ */}
       <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
-        <button onClick={() => navigate('/database')} className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back to Analytics
+        <button onClick={() => navigate(isAdmin ? '/analytics' : '/home')} className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          {isAdmin ? 'Back to Analytics' : 'Back to Home'}
         </button>
         <div className="flex gap-5 items-center">
           <button onClick={() => setShowReminders(true)} className="relative text-slate-700 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-all flex items-center gap-3 bg-white px-7 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/10">
