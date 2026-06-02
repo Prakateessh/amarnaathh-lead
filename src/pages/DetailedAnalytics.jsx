@@ -8,7 +8,8 @@ import {
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 const PIPELINE_STAGES = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
-const STAGE_COLORS    = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#10b981']; 
+// Option A Color Fix: "New" is now Charcoal/Slate (#475569) to separate from Negotiation
+const STAGE_COLORS    = ['#475569', '#0ea5e9', '#f59e0b', '#a855f7', '#10b981']; 
 const TEMP_COLORS     = { Hot: '#e11d48', Warm: '#ea580c', Cold: '#0284c7' };
 
 export default function DetailedAnalytics() {
@@ -45,6 +46,7 @@ export default function DetailedAnalytics() {
   const wonCount    = leads.filter(l => l.status === 'Closed - Won').length;
   const closedTotal = wonCount + lostCount;
   const winRate     = closedTotal > 0 ? ((wonCount / closedTotal) * 100).toFixed(1) : '—';
+  const funnelMax   = Math.max(...funnelData.map(d => d.count), 1);
 
   // ── SOURCE × TEMPERATURE DATA ─────────────────────────────────────────────────
   const sourceData = useMemo(() => {
@@ -109,6 +111,57 @@ export default function DetailedAnalytics() {
         {value}
       </text>
     ) : null;
+
+  // ── FUNNEL CARD RENDERER ──────────────────────────────────────────────────────
+  const renderFunnelCard = (stage, prevStage) => {
+    const widthPct = Math.max((stage.count / funnelMax) * 100, 2); 
+    const advRate = prevStage && prevStage.count > 0 ? Math.round((stage.count / prevStage.count) * 100) : null;
+    const pctAll = leads.length > 0 ? ((stage.count / leads.length) * 100).toFixed(1) : '0';
+
+    return (
+      <React.Fragment key={stage.name}>
+        {/* Connector Arrow (Horizontal) */}
+        {prevStage && (
+          <div className="flex flex-col justify-center items-center px-1 lg:px-2 flex-shrink-0">
+            <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+            {advRate !== null && (
+              <span className="text-[11px] font-bold text-slate-500 mt-2 uppercase tracking-widest whitespace-nowrap bg-white px-2 py-1 rounded-md border border-slate-200 shadow-sm">
+                {advRate > 100 ? '>100' : advRate}%
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Stage Card */}
+        <div 
+          className="flex-1 rounded-2xl overflow-hidden border-2 shadow-sm bg-white relative flex flex-col justify-between group hover:-translate-y-1 transition-transform duration-300 min-w-[200px]"
+          style={{ borderColor: `${stage.color}30` }}
+        >
+          <div className="absolute top-0 left-0 h-full transition-all duration-700" style={{ width: `${widthPct}%`, backgroundColor: `${stage.color}10` }} />
+          <div className="h-2.5 w-full relative z-10" style={{ backgroundColor: stage.color }} />
+          
+          <div className="p-6 flex flex-col justify-between h-full gap-5 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
+              <span className="font-bold text-base text-slate-700 uppercase tracking-widest leading-snug">
+                {stage.name}
+              </span>
+            </div>
+            <div className="flex items-end justify-between">
+              <span className="font-black text-5xl tabular-nums tracking-tight" style={{ color: stage.color }}>
+                {stage.count}
+              </span>
+              <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest text-right leading-tight bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                {pctAll}%<br/>Total
+              </span>
+            </div>
+          </div>
+        </div>
+      </React.Fragment>
+    );
+  };
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
@@ -183,7 +236,7 @@ export default function DetailedAnalytics() {
             </div>
 
             {/* ════════════════════════════════════════════════
-                HORIZONTAL SALES FUNNEL 
+                3 OVER 2 SALES FUNNEL
             ════════════════════════════════════════════════ */}
             <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner w-full">
               <div className="pb-5 border-b border-slate-200 flex justify-between items-end">
@@ -200,55 +253,44 @@ export default function DetailedAnalytics() {
                 </div>
               </div>
 
-              {/* Horizontal Funnel Track */}
-              <div className="flex items-stretch w-full gap-2 relative mt-4">
-                {funnelData.map((stage, index) => {
-                  const prevStage = index > 0 ? funnelData[index - 1] : null;
-                  const advRate   = prevStage && prevStage.count > 0
-                    ? Math.round((stage.count / prevStage.count) * 100)
-                    : null;
+              <div className="flex flex-col gap-6 w-full mt-4">
+                
+                {/* ROW 1: Top 3 Stages */}
+                <div className="flex items-stretch justify-between w-full gap-2">
+                  {funnelData.slice(0, 3).map((stage, i) => 
+                    renderFunnelCard(stage, i > 0 ? funnelData[i - 1] : null)
+                  )}
+                </div>
 
-                  return (
-                    <React.Fragment key={stage.name}>
-                      {/* ── Connector Arrow ── */}
-                      {index > 0 && (
-                        <div className="flex flex-col justify-center items-center px-1">
-                          <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                          </svg>
-                          {advRate !== null && (
-                            <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-widest whitespace-nowrap bg-white px-2 py-1 rounded-md border border-slate-200 shadow-sm">
-                              {advRate > 100 ? '>100' : advRate}%
-                            </span>
-                          )}
-                        </div>
-                      )}
+                {/* ROW CONNECTOR: Dropdown arrow from Stage 3 to 4 */}
+                <div className="flex justify-center my-1 relative">
+                  <div className="flex flex-col items-center bg-white px-5 py-2.5 rounded-2xl border border-slate-200 shadow-md z-10">
+                    <svg className="w-6 h-6 text-slate-400 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                    <span className="text-[11px] font-black text-slate-500 mt-1.5 uppercase tracking-widest">
+                      {funnelData[2].count > 0 ? Math.round((funnelData[3].count / funnelData[2].count) * 100) : 0}% Advance
+                    </span>
+                  </div>
+                </div>
 
-                      {/* ── Stage Card ── */}
-                      <div 
-                        className="flex-1 rounded-2xl overflow-hidden border-2 shadow-sm bg-white relative flex flex-col justify-between group hover:-translate-y-1 transition-transform duration-300"
-                        style={{ borderColor: `${stage.color}30` }}
-                      >
-                        {/* Top Color Bar */}
-                        <div className="h-2 w-full" style={{ backgroundColor: stage.color }} />
-                        
-                        <div className="p-6 flex flex-col justify-between h-full gap-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
-                            <span className="font-bold text-sm text-slate-600 uppercase tracking-widest line-clamp-1">
-                              {stage.name}
-                            </span>
-                          </div>
-                          <div className="flex items-end justify-between">
-                            <span className="font-black text-5xl tabular-nums tracking-tight" style={{ color: stage.color }}>
-                              {stage.count}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
+                {/* ROW 2: Bottom 2 Stages (Centered) */}
+                <div className="flex items-stretch justify-center w-full gap-2 xl:px-32">
+                  {funnelData.slice(3, 5).map((stage, i) => 
+                    renderFunnelCard(stage, i > 0 ? funnelData[i + 2] : null) // i+2 maps local idx 1 to global idx 3 (prev)
+                  )}
+                </div>
+
+              </div>
+
+              {/* Stage colour legend */}
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-8 border-t border-slate-200 mt-4">
+                {funnelData.map(s => (
+                  <div key={s.name} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="font-bold text-xs text-slate-600 uppercase tracking-widest truncate">{s.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -268,7 +310,7 @@ export default function DetailedAnalytics() {
                   No source data available.
                 </div>
               ) : (
-                <div className="flex flex-col xl:flex-row gap-10">
+                <div className="flex flex-col xl:flex-row gap-10 mt-4">
                   
                   {/* CHART SECTION */}
                   <div className="flex-1 min-w-0">
