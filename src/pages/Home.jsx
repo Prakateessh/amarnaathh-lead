@@ -14,6 +14,11 @@ export default function Home() {
   const [calendarLeads, setCalendarLeads] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
+  // Pagination State for Reminders
+  const [todayPage, setTodayPage] = useState(1);
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const ITEMS_PER_PAGE = 3;
+
   // Fetch leads for the calendar on load
   useEffect(() => {
     fetchCalendarData();
@@ -31,26 +36,39 @@ export default function Home() {
     }
   };
 
-  // === DATE MATH & ALERT LOGIC ===
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  // === DATE MATH & ADVANCED ALERT LOGIC ===
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // Filter out the urgent alerts
-  const urgentAlerts = [];
+  let todayAlerts = [];
+  let upcomingAlerts = [];
+
   calendarLeads.forEach(lead => {
-    // Check for urgent Calls
-    if (lead.tentative_call_date && !lead.call_attended && (lead.tentative_call_date === todayStr || lead.tentative_call_date === tomorrowStr)) {
-      urgentAlerts.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
+    // Check Calls
+    if (lead.tentative_call_date && !lead.call_attended) {
+      const isUpcoming = String(lead.tentative_call_date) > todayStr;
+      const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
+      targetArray.push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
     }
-    // Check for urgent GMeets
-    if (lead.gmeet_date && !lead.gmeet_attended && (lead.gmeet_date === todayStr || lead.gmeet_date === tomorrowStr)) {
-      urgentAlerts.push({ ...lead, alertType: 'GMeet', alertDate: lead.gmeet_date });
+    // Check GMeets
+    if (lead.gmeet_date && !lead.gmeet_attended) {
+      const gDate = String(lead.gmeet_date).split('T')[0];
+      const isUpcoming = gDate > todayStr;
+      const targetArray = isUpcoming ? upcomingAlerts : todayAlerts;
+      targetArray.push({ ...lead, alertType: 'GMeet', alertDate: gDate });
     }
   });
+
+  // Sort ascending (closest dates at the top)
+  todayAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
+  upcomingAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
+
+  const urgentAlerts = [...todayAlerts, ...upcomingAlerts]; 
+
+  // Pagination Math
+  const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
+  const upcomingTotalPages = Math.ceil(upcomingAlerts.length / ITEMS_PER_PAGE);
+  const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
+  const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
   // Action: Mark as attended in DB
   const handleMarkAttended = async (leadId, alertType) => {
@@ -63,6 +81,23 @@ export default function Home() {
     } catch (err) {
       console.error("Failed to update status:", err.message);
     }
+  };
+
+  // Helper for Pagination Bubbles
+  const renderPagination = (currentPage, totalPages, setPage) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex gap-2 justify-center mt-3">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => setPage(p)}
+            className={`w-8 h-8 rounded-md font-mono text-sm font-bold transition-all duration-300 ${
+              currentPage === p ? 'bg-purple-900 text-white shadow-md ring-2 ring-[#EBA7FF]/50' : 'bg-slate-100 border border-slate-300 text-slate-700 hover:bg-[#EBA7FF]/20 hover:text-purple-900'
+            }`}>
+            {p}
+          </button>
+        ))}
+      </div>
+    );
   };
 
   // Action: Logout properly
@@ -78,7 +113,7 @@ export default function Home() {
   const daysInCurrentMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const firstDayOffset = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const blanks = Array.from({ length: firstDayOffset }, (_, i) => i);
-  const days = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
+  const calendarDays = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -160,7 +195,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Section 2: The 5 Data Source Buttons */}
+        {/* Section 2: The Data Source Buttons */}
         <div className="flex flex-wrap justify-center gap-6 w-full">
           {dataSources.map((source) => (
             <button
@@ -196,105 +231,146 @@ export default function Home() {
         </button>
       </div>
 
-      {/* ── MODAL: REMINDERS & CALENDAR ───────────────────────────── */}
+      {/* ── MODAL: REMINDERS & CALENDAR (LIGHT THEME) ───────────────────────────── */}
       {showReminders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-navy border border-white/20 p-6 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 p-8 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-8 font-sans">
             
-            {/* Header */}
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-              <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-5">
+              <h3 className="text-3xl font-black text-purple-900 flex items-center gap-4">
                 📅 Schedule & Reminders
               </h3>
-              <button onClick={() => setShowReminders(false)} className="text-secondary hover:text-red-400">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-3 rounded-full transition-colors border border-slate-200 shadow-sm">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            {/* Urgent Alerts Section */}
-            {urgentAlerts.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                <h4 className="font-mono text-xs text-red-400 uppercase tracking-widest">⚠️ Urgent Action Required</h4>
-                {urgentAlerts.map((alert, index) => (
-                  <div key={index} className="bg-red-900/20 border border-red-500/30 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${alert.alertType === 'Call' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
-                          {alert.alertType}
-                        </span>
-                        <span className="text-white font-mono text-sm">
-                          {alert.alertDate === todayStr ? 'TODAY' : 'TOMORROW'}
-                        </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-b border-slate-200 pb-10">
+              {/* LEFT COLUMN: Today & Overdue */}
+              <div className="flex flex-col gap-5 bg-rose-50 border border-rose-200 p-8 rounded-2xl shadow-sm">
+                <h4 className="font-black text-xl text-rose-700 border-b border-rose-200 pb-4 flex items-center gap-3">
+                  <span>⚠️ Today & Overdue</span>
+                  <span className="bg-rose-200 text-rose-900 px-4 py-1.5 rounded-full text-sm font-mono">{todayAlerts.length}</span>
+                </h4>
+                
+                {currentTodayAlerts.length > 0 ? (
+                  <div className="flex flex-col gap-5 min-h-[420px]">
+                    {currentTodayAlerts.map((alert, index) => (
+                      <div key={index} className="bg-white border border-rose-300 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
+                        <div>
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
+                              {alert.alertType}
+                            </span>
+                            <span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">
+                              {alert.alertDate}
+                            </span>
+                          </div>
+                          <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
+                        </div>
+                        <div className="flex gap-4 w-full mt-3">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">
+                            Dismiss
+                          </button>
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">
+                            ✓ Attended
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-white font-medium text-lg">{alert.name}</p>
-                    </div>
-                    
-                    <div className="flex gap-3 w-full md:w-auto">
-                      <button 
-                        onClick={() => setShowReminders(false)} 
-                        className="flex-1 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded transition-colors"
-                      >
-                        Will Attend Soon
-                      </button>
-                      <button 
-                        onClick={() => handleMarkAttended(alert.id, alert.alertType)}
-                        className="flex-1 bg-green-600/80 hover:bg-green-500 text-white font-mono text-xs tracking-wider uppercase px-4 py-2 rounded transition-colors shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                      >
-                        ✓ Already Attended
-                      </button>
+                    ))}
+                    <div className="mt-auto">
+                      {renderPagination(todayPage, todayTotalPages, setTodayPage)}
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                    <span className="text-emerald-700 font-black text-xl bg-emerald-100 px-8 py-4 rounded-2xl border border-emerald-300 shadow-sm">✅ Clear for today</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="bg-green-900/10 border border-green-500/20 p-4 rounded-lg flex items-center justify-center">
-                <span className="text-green-400 font-mono text-sm tracking-widest uppercase">✅ No urgent calls or meetings today.</span>
-              </div>
-            )}
 
-            {/* Calendar View Section */}
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="font-mono text-sm text-secondary uppercase tracking-widest">
+              {/* RIGHT COLUMN: Tomorrow & Upcoming */}
+              <div className="flex flex-col gap-5 bg-slate-50 border border-slate-200 p-8 rounded-2xl shadow-sm">
+                <h4 className="font-black text-xl text-slate-800 border-b border-slate-200 pb-4 flex items-center gap-3">
+                  <span>📅 Tomorrow & Upcoming</span>
+                  <span className="bg-slate-200 text-slate-800 px-4 py-1.5 rounded-full text-sm font-mono">{upcomingAlerts.length}</span>
+                </h4>
+                
+                {currentUpcomingAlerts.length > 0 ? (
+                  <div className="flex flex-col gap-5 min-h-[420px]">
+                    {currentUpcomingAlerts.map((alert, index) => (
+                      <div key={index} className="bg-white border border-slate-200 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
+                        <div>
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${alert.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>
+                              {alert.alertType}
+                            </span>
+                            <span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">
+                              {alert.alertDate}
+                            </span>
+                          </div>
+                          <p className="text-slate-900 font-black text-xl truncate">{alert.name}</p>
+                        </div>
+                        <div className="flex gap-4 w-full mt-3">
+                          <button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-[#EBA7FF]/20 border border-slate-300 text-slate-700 hover:text-purple-900 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">
+                            Dismiss
+                          </button>
+                          <button onClick={() => handleMarkAttended(alert.id, alert.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">
+                            ✓ Attended
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-auto">
+                      {renderPagination(upcomingPage, upcomingTotalPages, setUpcomingPage)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center min-h-[200px]">
+                    <span className="text-slate-500 font-black text-xl bg-white px-8 py-4 rounded-2xl border border-slate-200 shadow-sm">No upcoming alerts</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="font-black text-xl text-slate-800 uppercase tracking-widest">
                   {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h4>
-                <div className="flex gap-2">
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-1 bg-white/5 rounded text-white hover:bg-white/20">{'<'}</button>
-                  <button onClick={() => setCurrentMonth(new Date())} className="px-2 font-mono text-xs bg-white/5 rounded text-white hover:bg-white/20">TODAY</button>
-                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-1 bg-white/5 rounded text-white hover:bg-white/20">{'>'}</button>
+                <div className="flex gap-3">
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-4 bg-slate-100 text-slate-700 font-black rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">{'<'}</button>
+                  <button onClick={() => setCurrentMonth(new Date())} className="px-6 font-mono text-base font-black bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">TODAY</button>
+                  <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-4 bg-slate-100 text-slate-700 font-black rounded-xl hover:bg-slate-200 transition-colors border border-slate-300 shadow-sm">{'>'}</button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-7 gap-2">
-                {/* Days of Week */}
+              <div className="grid grid-cols-7 gap-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d} className="text-center font-mono text-xs text-secondary py-2">{d}</div>
+                  <div key={d} className="text-center font-black text-base uppercase text-slate-500 py-3">{d}</div>
                 ))}
-                
-                {/* Blank Offset Days */}
-                {blanks.map(b => <div key={`blank-${b}`} className="p-2"></div>)}
-                
-                {/* Actual Days */}
-                {days.map(day => {
+                {blanks.map(b => <div key={`blank-${b}`} className="p-3"></div>)}
+                {calendarDays.map(day => {
                   const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isToday = dateString === todayStr;
                   
-                  // Check if this specific day has calls or meets
-                  const dayCalls = calendarLeads.filter(l => l.tentative_call_date === dateString);
-                  const dayMeets = calendarLeads.filter(l => l.gmeet_date === dateString);
+                  const dayCalls = calendarLeads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
+                  const dayMeets = calendarLeads.filter(l => {
+                    const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null;
+                    return gDate === dateString && !l.gmeet_attended;
+                  });
 
                   return (
-                    <div key={day} className={`min-h-[80px] p-2 border rounded flex flex-col items-start gap-1 transition-colors ${isToday ? 'border-primary bg-primary/10' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}>
-                      <span className={`font-mono text-xs ${isToday ? 'text-primary font-bold' : 'text-secondary'}`}>{day}</span>
-                      
-                      <div className="flex flex-col gap-1 w-full overflow-hidden">
+                    <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
+                      <span className={`font-mono text-lg ${isToday ? 'text-purple-900 font-black' : 'text-slate-600 font-bold'}`}>{day}</span>
+                      <div className="flex flex-col gap-2 w-full overflow-hidden">
                         {dayCalls.length > 0 && (
-                          <div className="text-[9px] bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded truncate" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
+                          <div className="text-sm bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>
                             📞 {dayCalls.length} Call(s)
                           </div>
                         )}
                         {dayMeets.length > 0 && (
-                          <div className="text-[9px] bg-purple-500/20 text-purple-300 px-1 py-0.5 rounded truncate" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
+                          <div className="text-sm bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>
                             📹 {dayMeets.length} Meet(s)
                           </div>
                         )}
@@ -303,14 +379,11 @@ export default function Home() {
                   );
                 })}
               </div>
-              
-              {/* Calendar Legend */}
-              <div className="flex gap-4 mt-4 justify-center">
-                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2 h-2 rounded-full bg-blue-400"></span> Call Scheduled</span>
-                <span className="flex items-center gap-2 font-mono text-[10px] text-secondary"><span className="w-2 h-2 rounded-full bg-purple-400"></span> GMeet Scheduled</span>
+              <div className="flex gap-8 mt-10 justify-center">
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm"></span> Call Scheduled</span>
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-purple-100 border-2 border-purple-400 shadow-sm"></span> GMeet Scheduled</span>
               </div>
             </div>
-
           </div>
         </div>
       )}
