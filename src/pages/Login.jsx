@@ -20,14 +20,14 @@ export default function Login() {
     const password = credentials.password;
     
     // 🛑 ROLE-BASED AUTHENTICATION
-    if (username === 'admin' && password === 'admin123') {
+    if (username === 'Admin' && password === 'Amarnaathh@2026') {
       // 1. Log the Admin In
       localStorage.setItem('isLoggedIn', 'true');
       // 2. Save their specific Role (We will use this later to show everything)
       localStorage.setItem('userRole', 'Admin');
       navigate('/home'); 
 
-    } else if (username === 'bme' && password === 'bme123') {
+    } else if (username === 'BDE' && password === 'Amarnaathh@1998') {
       // 1. Log the BME In
       localStorage.setItem('isLoggedIn', 'true');
       // 2. Save their specific Role (We will use this later to hide things)
@@ -84,7 +84,7 @@ export default function Login() {
               required
               value={credentials.name} 
               onChange={handleChange}
-              placeholder="e.g. Admin or BME"
+              placeholder="e.g. Admin or BDE"
               className="w-full bg-white border border-slate-300 rounded-xl px-5 py-4 text-slate-900 font-bold text-base focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow shadow-sm"
             />
           </div>
