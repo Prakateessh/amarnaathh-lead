@@ -32,23 +32,15 @@ export default function IndiaMart() {
   const [isFetching, setIsFetching] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // 🔍 NEW: SORT & FILTER STATE
+  // 🔍 SORT & FILTER STATE
   const [showFilters, setShowFilters] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [filters, setFilters] = useState({
-    globalSearch: '',
-    status: []
-  });
+  const [filters, setFilters] = useState({ globalSearch: '', status: [] });
 
   const extractionStatuses = ['—', '✅ Qualified', '❌ Not Qualified', '🔒 Synced'];
 
-  useEffect(() => {
-    sessionStorage.setItem('im_dates', JSON.stringify(dates));
-  }, [dates]);
-
-  useEffect(() => {
-    sessionStorage.setItem('im_leads', JSON.stringify(leads));
-  }, [leads]);
+  useEffect(() => { sessionStorage.setItem('im_dates', JSON.stringify(dates)); }, [dates]);
+  useEffect(() => { sessionStorage.setItem('im_leads', JSON.stringify(leads)); }, [leads]);
 
   const handleCookieChange = (e) => {
     setCookieString(e.target.value);
@@ -146,25 +138,14 @@ export default function IndiaMart() {
     }
   };
 
-  // 🔍 NEW: FILTER & SORT LOGIC
   const processedLeads = useMemo(() => {
     let result = [...leads];
-
-    // 1. Global Search
     if (filters.globalSearch.trim()) {
       const s = filters.globalSearch.toLowerCase();
-      result = result.filter(l =>
-        [l.name, l.company, l.requirement, l.phone, l.location]
-          .some(v => v?.toLowerCase().includes(s))
-      );
+      result = result.filter(l => [l.name, l.company, l.requirement, l.phone, l.location].some(v => v?.toLowerCase().includes(s)));
     }
-
-    // 2. Status Filter
-    if (filters.status.length) {
-      result = result.filter(l => filters.status.includes(l.status || '—'));
-    }
-
-    // 3. Sorting
+    if (filters.status.length) result = result.filter(l => filters.status.includes(l.status || '—'));
+    
     if (sortConfig.key) {
       result.sort((a, b) => {
         const dir = sortConfig.direction === 'asc' ? 1 : -1;
@@ -175,26 +156,19 @@ export default function IndiaMart() {
         return 0;
       });
     }
-
     return result;
   }, [leads, filters, sortConfig]);
 
   const toggleFilter = (value) => {
     setFilters(prev => ({
-      ...prev,
-      status: prev.status.includes(value) ? prev.status.filter(v => v !== value) : [...prev.status, value]
+      ...prev, status: prev.status.includes(value) ? prev.status.filter(v => v !== value) : [...prev.status, value]
     }));
   };
 
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
-    }));
-  };
-
+  const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
+  
   const SortBtn = ({ col }) => (
-    <button onClick={() => handleSort(col)} className={`ml-1 text-[11px] transition-all ${sortConfig.key === col ? 'text-blue-400' : 'text-white/25 hover:text-white/60'}`}>
+    <button onClick={() => handleSort(col)} className={`ml-2 text-sm transition-all hover:scale-125 ${sortConfig.key === col ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'}`}>
       {sortConfig.key === col ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '⇅'}
     </button>
   );
@@ -202,13 +176,8 @@ export default function IndiaMart() {
   const handleDownloadExcel = () => {
     if (processedLeads.length === 0) return;
     const excelData = processedLeads.map(lead => ({
-      'Date': lead.date || '',
-      'Requirement': lead.requirement || '',
-      'Name': lead.name || '',
-      'Company': lead.company || '',
-      'Phone': lead.phone || '',
-      'Location': lead.location || '',
-      'Status': lead.status || 'Pending'
+      'Date': lead.date || '', 'Requirement': lead.requirement || '', 'Name': lead.name || '',
+      'Company': lead.company || '', 'Phone': lead.phone || '', 'Location': lead.location || '', 'Status': lead.status || 'Pending'
     }));
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     worksheet['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 25 }, { wch: 15 }];
@@ -226,55 +195,60 @@ export default function IndiaMart() {
   const qualifiedCount = leads.filter(l => l.status === "✅ Qualified").length;
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans">
+      
+      {/* Background Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[140px] pointer-events-none" />
 
+      {/* Navigation */}
       <div className="w-full max-w-[95%] xl:max-w-7xl flex justify-between items-center mb-8 relative z-10">
-        <button onClick={() => navigate('/home')} className="text-secondary hover:text-primary font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        <button onClick={() => navigate('/home')} className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to Routing
         </button>
-        <span className="font-mono text-xs text-blue-400 tracking-widest uppercase flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+        <span className="font-black text-base text-purple-900 tracking-widest uppercase flex items-center gap-3 bg-[#EBA7FF]/30 px-7 py-4 rounded-xl border border-[#EBA7FF]/60 shadow-sm">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
           IndiaMart Integration
         </span>
       </div>
 
-      <div className="glass-modal w-full max-w-[95%] xl:max-w-7xl p-8 relative z-10 flex flex-col gap-8 shadow-2xl">
-        <div className="border-b border-white/10 pb-6 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-            
-            <div className="w-full md:w-1/2">
-              <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Data Extraction</h1>
-              <p className="text-onSurfaceVariant text-sm mt-2 mb-4">Pull inbound requests directly from the IndiaMart vendor API.</p>
+      <div className="bg-white w-full max-w-[95%] xl:max-w-7xl p-10 relative z-10 flex flex-col gap-10 shadow-2xl shadow-slate-200/60 rounded-3xl border border-slate-300">
+        
+        {/* Header Section */}
+        <div className="border-b border-slate-200 pb-8 flex flex-col gap-6">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-8">
+            <div className="w-full xl:w-1/2">
+              <h1 className="text-5xl font-black text-slate-900 tracking-tight">Data Extraction</h1>
+              <p className="text-slate-500 font-medium text-lg mt-3 mb-6">Pull inbound requests directly from the IndiaMart vendor API.</p>
               
               {showCookieInput && (
-                <div className="flex flex-col gap-2 animate-fade-in">
-                  <label className="font-mono text-xs text-secondary tracking-widest uppercase">
-                    Session Cookie Data <span className="text-red-400">*</span>
+                <div className="flex flex-col gap-3 animate-fade-in bg-rose-50 border border-rose-200 p-6 rounded-2xl shadow-inner">
+                  <label className="font-bold text-sm text-rose-700 uppercase tracking-widest flex items-center gap-2">
+                    Session Cookie Data <span className="text-rose-500">*</span>
                   </label>
                   <textarea 
                     value={cookieString} 
                     onChange={handleCookieChange}
                     rows="4"
                     placeholder={"Paste your cookie here...\n'pop_mthd': 'FL%3D...', etc."} 
-                    className="bg-black/30 border border-red-500/50 px-3 py-2 rounded text-white font-mono text-xs focus:border-primary focus:outline-none w-full resize-y" 
+                    className="bg-white border border-rose-300 px-5 py-4 rounded-xl text-slate-900 font-mono text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none w-full resize-y shadow-sm" 
                   />
-                  <span className="text-xs text-red-300">Previous cookie expired. Paste the new array/string above to continue.</span>
+                  <span className="text-sm font-bold text-rose-600">Previous cookie expired. Paste the new array/string above to continue.</span>
                 </div>
               )}
             </div>
             
-            <div className="flex items-end gap-4 w-full md:w-auto">
-              <div className="flex flex-col gap-2">
-                <label className="font-mono text-xs text-secondary tracking-widest uppercase">Start Date</label>
-                <input type="date" value={dates.start} onChange={(e) => setDates({...dates, start: e.target.value})} className="bg-white/5 border border-white/20 px-3 py-2 rounded text-white font-mono focus:border-blue-400 focus:outline-none" />
+            <div className="flex flex-col sm:flex-row items-end gap-5 w-full xl:w-auto">
+              <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">Start Date</label>
+                <input type="date" value={dates.start} onChange={(e) => setDates({...dates, start: e.target.value})} className="bg-slate-50 border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-all shadow-sm cursor-pointer" />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-mono text-xs text-secondary tracking-widest uppercase">End Date</label>
-                <input type="date" value={dates.end} onChange={(e) => setDates({...dates, end: e.target.value})} className="bg-white/5 border border-white/20 px-3 py-2 rounded text-white font-mono focus:border-blue-400 focus:outline-none" />
+              <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">End Date</label>
+                <input type="date" value={dates.end} onChange={(e) => setDates({...dates, end: e.target.value})} className="bg-slate-50 border border-slate-300 px-5 py-4 rounded-xl text-slate-900 font-mono font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-all shadow-sm cursor-pointer" />
               </div>
-              <button onClick={handleFetch} disabled={isFetching} className={`h-[42px] px-6 font-mono text-sm tracking-widest uppercase rounded transition-colors ${isFetching ? 'bg-surface-bright text-secondary cursor-not-allowed' : 'btn-primary'}`}>
+              <button onClick={handleFetch} disabled={isFetching} className={`w-full sm:w-auto px-10 py-4 font-black text-lg tracking-widest uppercase rounded-xl transition-all shadow-md ${isFetching ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 text-white hover:shadow-[0_0_20px_rgba(235,167,255,0.6)]'}`}>
                 {isFetching ? 'Fetching...' : 'Initialize'}
               </button>
             </div>
@@ -282,59 +256,45 @@ export default function IndiaMart() {
         </div>
 
         {status.message && (
-          <div className={`px-4 py-3 rounded-md font-mono text-sm border flex justify-between items-center ${status.type === 'error' ? 'bg-red-900/50 border-red-500/50 text-red-200' : 'bg-blue-900/50 border-blue-500/50 text-blue-200'}`}>
+          <div className={`px-6 py-4 rounded-xl font-bold text-sm tracking-widest uppercase shadow-sm border flex justify-between items-center ${status.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
             <span>{status.message}</span>
-            <button onClick={() => setStatus({type: '', message: ''})} className="text-white/50 hover:text-white">✕</button>
+            <button onClick={() => setStatus({type: '', message: ''})} className="text-xl leading-none opacity-50 hover:opacity-100 transition-opacity">×</button>
           </div>
         )}
 
         {leads.length > 0 && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             
             {/* 🔍 FILTER BAR */}
-            <div className="flex flex-col gap-3 mb-2">
-              <div className="flex gap-3 items-center">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-5 items-center">
                 <div className="relative flex-1">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  <input
-                    type="text"
-                    value={filters.globalSearch}
-                    onChange={e => setFilters(p => ({ ...p, globalSearch: e.target.value }))}
-                    placeholder="Search name, company, requirement, phone..."
-                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-8 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder:text-secondary/40"
-                  />
-                  {filters.globalSearch && (
-                    <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-white text-lg leading-none">×</button>
-                  )}
+                  <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input type="text" value={filters.globalSearch} onChange={e => setFilters(p => ({ ...p, globalSearch: e.target.value }))} placeholder="Search name, company, requirement, phone..." 
+                    className="w-full bg-white border border-slate-300 rounded-2xl pl-14 pr-12 py-5 text-slate-900 font-medium text-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-shadow placeholder:text-slate-400 shadow-sm" />
+                  {filters.globalSearch && <button onClick={() => setFilters(p => ({ ...p, globalSearch: '' }))} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 text-3xl font-black leading-none">×</button>}
                 </div>
-
-                <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-xs tracking-widest uppercase border transition-colors ${showFilters || filters.status.length > 0 ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/20'}`}>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg>
-                  Filters
-                  {filters.status.length > 0 && <span className="bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{filters.status.length}</span>}
+                <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-3 px-8 py-5 rounded-2xl font-black text-base tracking-widest uppercase border transition-colors shadow-sm whitespace-nowrap ${showFilters || filters.status.length > 0 ? 'bg-purple-100 border-[#EBA7FF] text-purple-900 ring-2 ring-[#EBA7FF]/50' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h18M6 8h12M9 12h6M11 16h2" /></svg> Filters {filters.status.length > 0 && <span className="bg-purple-900 text-white text-sm font-black rounded-lg px-2.5 py-0.5 ml-2">{filters.status.length}</span>}
                 </button>
-                
                 {(filters.status.length > 0 || sortConfig.key || filters.globalSearch) && (
-                  <button onClick={() => { setFilters({globalSearch: '', status: []}); setSortConfig({key:null, direction:'asc'}); }} className="px-3 py-2.5 rounded-lg font-mono text-[10px] tracking-widest uppercase border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap">
-                    Clear All
-                  </button>
+                  <button onClick={() => { setFilters({globalSearch: '', status: []}); setSortConfig({key:null, direction:'asc'}); }} className="px-8 py-5 rounded-2xl font-black text-sm tracking-widest uppercase border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors whitespace-nowrap shadow-sm">Clear All</button>
                 )}
               </div>
 
               {showFilters && (
-                <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
-                  <span className="font-mono text-[10px] text-secondary uppercase tracking-widest">Qualify Status</span>
-                  <div className="flex flex-wrap gap-2">
+                <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col gap-4 shadow-inner">
+                  <span className="font-black text-sm text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2.5">Qualify Status</span>
+                  <div className="flex flex-wrap gap-3 mt-2">
                     {extractionStatuses.map(stage => {
                       const activeClass = 
-                        stage === '✅ Qualified' ? 'bg-green-500/20 border-green-500 text-green-300' :
-                        stage === '❌ Not Qualified' ? 'bg-red-500/20 border-red-500 text-red-300' :
-                        stage === '🔒 Synced' ? 'bg-blue-500/20 border-blue-500 text-blue-300' :
-                        'bg-white/20 border-white text-white';
+                        stage === '✅ Qualified' ? 'bg-emerald-100 border-emerald-300 text-emerald-800 shadow-md' :
+                        stage === '❌ Not Qualified' ? 'bg-rose-100 border-rose-300 text-rose-800 shadow-md' :
+                        stage === '🔒 Synced' ? 'bg-blue-100 border-blue-300 text-blue-800 shadow-md' :
+                        'bg-slate-200 border-slate-300 text-slate-800 shadow-md';
                       return (
-                        <button key={stage} onClick={() => toggleFilter(stage)} className={`px-3 py-1 rounded-full font-mono text-xs border transition-all ${filters.status.includes(stage) ? activeClass : 'bg-white/5 border-white/10 text-secondary hover:text-white hover:border-white/25'}`}>
-                          {filters.status.includes(stage) && <span className="mr-1">✓</span>}
-                          {stage === '—' ? 'Pending (—)' : stage}
+                        <button key={stage} onClick={() => toggleFilter(stage)} className={`px-5 py-2.5 rounded-xl font-bold text-base border transition-all ${filters.status.includes(stage) ? activeClass : 'bg-white border-slate-300 text-slate-700 hover:border-[#EBA7FF]/50 hover:bg-[#EBA7FF]/10 shadow-sm'}`}>
+                          {filters.status.includes(stage) && '✓ '}{stage === '—' ? 'Pending (—)' : stage}
                         </button>
                       );
                     })}
@@ -343,38 +303,38 @@ export default function IndiaMart() {
               )}
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-white/10">
-              <table className="w-full text-left border-collapse min-w-[900px]">
-                <thead className="bg-white/5 border-b border-white/10">
-                  <tr className="text-secondary font-mono text-xs uppercase tracking-wider">
-                    <th className="py-3 px-4 font-medium"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
-                    <th className="py-3 px-4 font-medium"><span className="flex items-center">Requirement <SortBtn col="requirement" /></span></th>
-                    <th className="py-3 px-4 font-medium"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
-                    <th className="py-3 px-4 font-medium"><span className="flex items-center">Location <SortBtn col="location" /></span></th>
-                    <th className="py-3 px-4 font-medium"><span className="flex items-center">Qualify Status <SortBtn col="status" /></span></th>
+            <div className="overflow-x-auto relative rounded-2xl border border-slate-300 bg-white shadow-md">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
+                <thead>
+                  <tr className="border-b-2 border-slate-300 bg-slate-100 text-slate-600 font-black text-sm uppercase tracking-wider">
+                    <th className="py-6 px-6"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
+                    <th className="py-6 px-6 w-96"><span className="flex items-center">Requirement <SortBtn col="requirement" /></span></th>
+                    <th className="py-6 px-6"><span className="flex items-center">Client Info <SortBtn col="name" /></span></th>
+                    <th className="py-6 px-6"><span className="flex items-center">Location <SortBtn col="location" /></span></th>
+                    <th className="py-6 px-6"><span className="flex items-center">Qualify Status <SortBtn col="status" /></span></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-200">
                   {processedLeads.length > 0 ? (
-                    processedLeads.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-white/5 transition-colors">
-                        <td className="py-3 px-4 text-white font-mono text-sm whitespace-nowrap">{lead.date}</td>
-                        <td className="py-3 px-4 text-white font-medium max-w-xs truncate" title={lead.requirement}>{lead.requirement}</td>
-                        <td className="py-3 px-4">
-                          <div className="text-white">{lead.name}</div>
-                          <div className="text-onSurfaceVariant text-xs mt-1">{lead.company || '—'} | {lead.phone}</div>
+                    processedLeads.map((lead, idx) => (
+                      <tr key={lead.id} className={`transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'} hover:bg-[#EBA7FF]/10`}>
+                        <td className="py-5 px-6 text-slate-900 font-mono font-bold text-sm whitespace-nowrap">{lead.date}</td>
+                        <td className="py-5 px-6 text-slate-800 font-medium text-base max-w-xs truncate" title={lead.requirement}>{lead.requirement}</td>
+                        <td className="py-5 px-6">
+                          <div className="text-slate-900 font-black text-lg">{lead.name}</div>
+                          <div className="text-slate-600 text-sm font-bold mt-1">{lead.company || '—'} | <span className="text-blue-700">{lead.phone}</span></div>
                         </td>
-                        <td className="py-3 px-4 text-white text-sm">{lead.location}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-5 px-6 text-slate-700 text-base font-medium">{lead.location}</td>
+                        <td className="py-5 px-6">
                           <select 
                             value={lead.status || '—'}
                             disabled={lead.status === "🔒 Synced"}
                             onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
-                            className={`bg-navy border px-2 py-1 rounded font-mono text-xs focus:outline-none focus:border-blue-400 ${
-                              lead.status === '✅ Qualified' ? 'border-green-500 text-green-400' : 
-                              lead.status === '❌ Not Qualified' ? 'border-red-500 text-red-400' : 
-                              lead.status === '🔒 Synced' ? 'border-blue-500 text-blue-400 opacity-70 cursor-not-allowed' :
-                              'border-white/20 text-white'
+                            className={`border px-4 py-2.5 rounded-xl font-bold text-sm uppercase tracking-widest focus:outline-none transition-shadow shadow-sm cursor-pointer ${
+                              lead.status === '✅ Qualified' ? 'bg-emerald-50 border-emerald-300 text-emerald-800 focus:ring-2 focus:ring-emerald-200' : 
+                              lead.status === '❌ Not Qualified' ? 'bg-rose-50 border-rose-300 text-rose-800 focus:ring-2 focus:ring-rose-200' : 
+                              lead.status === '🔒 Synced' ? 'bg-blue-50 border-blue-200 text-blue-700 opacity-70 cursor-not-allowed' :
+                              'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 focus:border-purple-500 focus:ring-2 focus:ring-purple-200'
                             }`}
                           >
                             <option value="—">— Pending —</option>
@@ -387,40 +347,39 @@ export default function IndiaMart() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="py-8 text-center text-secondary font-mono text-sm">
+                      <td colSpan="5" className="py-20 text-center text-slate-500 font-bold text-xl uppercase tracking-widest">
                         No leads match your current search/filter.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
-              <div className="flex justify-between items-center px-4 py-3 bg-white/5 border-t border-white/10 font-mono text-xs text-secondary">
-                <span>Showing <strong className="text-white">{processedLeads.length}</strong> of <strong className="text-white">{leads.length}</strong> loaded leads</span>
+              <div className="flex justify-between items-center px-8 py-5 bg-slate-100 border-t-2 border-slate-300 rounded-b-2xl font-bold text-sm text-slate-600">
+                <span>Showing <strong className="text-slate-900 font-black">{processedLeads.length}</strong> of <strong className="text-slate-900 font-black">{leads.length}</strong> loaded leads</span>
               </div>
             </div>
 
-            <div className="flex justify-between items-center bg-white/5 border border-white/10 p-4 rounded-lg mt-2">
-              <span className="font-mono text-sm text-secondary">
-                {qualifiedCount > 0 ? <strong className="text-green-400">{qualifiedCount} leads ready for ingestion.</strong> : "Awaiting qualification."}
+            <div className="flex flex-col md:flex-row justify-between items-center bg-slate-50 border border-slate-200 p-8 rounded-3xl shadow-inner gap-6">
+              <span className="font-black text-xl text-slate-700 tracking-tight">
+                {qualifiedCount > 0 ? <strong className="text-emerald-600 bg-emerald-100 px-4 py-2 rounded-xl border border-emerald-200 shadow-sm">{qualifiedCount} leads ready for ingestion</strong> : "Awaiting qualification."}
               </span>
               
-              <div className="flex gap-4">
-                <button onClick={clearSession} className="px-4 py-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 font-mono text-sm tracking-widest uppercase rounded transition-colors">
-                  Clear List
+              <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                <button onClick={clearSession} className="px-6 py-4 bg-white border border-rose-300 text-rose-600 hover:bg-rose-50 font-black text-sm tracking-widest uppercase rounded-xl transition-colors shadow-sm w-full sm:w-auto">
+                  Clear Memory
                 </button>
                 <button 
                   onClick={handleDownloadExcel}
-                  className="px-6 py-2 border border-white/20 hover:border-white/50 text-white font-mono text-sm tracking-widest uppercase rounded transition-colors flex items-center gap-2"
+                  className="px-6 py-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-black text-sm tracking-widest uppercase rounded-xl transition-colors flex items-center justify-center gap-3 shadow-sm w-full sm:w-auto"
                 >
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                  Export Excel
+                  <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  Export Data
                 </button>
-
                 <button 
                   onClick={handleSendToCRM}
                   disabled={qualifiedCount === 0} 
-                  className={`px-6 py-2 font-mono text-sm tracking-widest uppercase rounded transition-colors ${
-                    qualifiedCount > 0 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-surface-bright text-secondary cursor-not-allowed'
+                  className={`px-8 py-4 font-black text-base tracking-widest uppercase rounded-xl transition-all w-full sm:w-auto shadow-md ${
+                    qualifiedCount > 0 ? 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}
                 >
                   📥 Send to Master CRM
