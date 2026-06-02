@@ -8,8 +8,8 @@ import {
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
 const PIPELINE_STAGES = ['New', 'Contacted', 'Quoted / Demo', 'Negotiation', 'Closed - Won'];
-const STAGE_COLORS    = ['#6366f1', '#06b6d4', '#f59e0b', '#a855f7', '#10b981'];
-const TEMP_COLORS     = { Hot: '#ef4444', Warm: '#f59e0b', Cold: '#06b6d4' };
+const STAGE_COLORS    = ['#6366f1', '#0ea5e9', '#f59e0b', '#a855f7', '#10b981']; // Adjusted for light theme contrast
+const TEMP_COLORS     = { Hot: '#e11d48', Warm: '#f59e0b', Cold: '#0284c7' };
 
 export default function DetailedAnalytics() {
   const navigate = useNavigate();
@@ -41,11 +41,11 @@ export default function DetailedAnalytics() {
     [leads]
   );
 
-  const lostCount  = leads.filter(l => l.status === 'Closed - Lost').length;
-  const wonCount   = leads.filter(l => l.status === 'Closed - Won').length;
+  const lostCount   = leads.filter(l => l.status === 'Closed - Lost').length;
+  const wonCount    = leads.filter(l => l.status === 'Closed - Won').length;
   const closedTotal = wonCount + lostCount;
-  const winRate    = closedTotal > 0 ? ((wonCount / closedTotal) * 100).toFixed(1) : '—';
-  const funnelMax  = Math.max(...funnelData.map(d => d.count), 1);
+  const winRate     = closedTotal > 0 ? ((wonCount / closedTotal) * 100).toFixed(1) : '—';
+  const funnelMax   = Math.max(...funnelData.map(d => d.count), 1);
 
   // ── SOURCE × TEMPERATURE DATA ─────────────────────────────────────────────────
   const sourceData = useMemo(() => {
@@ -64,21 +64,28 @@ export default function DetailedAnalytics() {
       .sort((a, b) => b.total - a.total);
   }, [leads]);
 
-  // ── CUSTOM TOOLTIP ────────────────────────────────────────────────────────────
+  // ── CUSTOM TOOLTIP (Light Theme) ──────────────────────────────────────────────
   const BarTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
     return (
-      <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 14px', fontFamily: 'monospace' }}>
-        <p style={{ color: '#fff', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</p>
-        {[...payload].reverse().map((p, i) => (
-          <p key={i} style={{ color: p.fill, fontSize: 11, margin: '2px 0' }}>
-            {p.name === 'Hot' ? '🔥' : p.name === 'Warm' ? '🌡️' : '❄️'} {p.name}: {p.value}
-          </p>
-        ))}
-        <p style={{ color: '#64748b', fontSize: 11, marginTop: 5, paddingTop: 5, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          Total: {total}
-        </p>
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_10px_40px_rgba(0,0,0,0.08)] font-sans min-w-[180px]">
+        <p className="text-slate-900 text-lg font-black mb-3 border-b border-slate-100 pb-2">{label}</p>
+        <div className="flex flex-col gap-2">
+          {[...payload].reverse().map((p, i) => (
+            <div key={i} className="flex justify-between items-center text-sm font-bold">
+              <span className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: p.fill }}></span>
+                <span className="text-slate-600 uppercase tracking-widest text-[11px]">{p.name}</span>
+              </span>
+              <span className="text-slate-900 tabular-nums text-base">{p.value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+          <span className="text-slate-400 font-black text-xs uppercase tracking-widest">Total</span>
+          <span className="text-purple-700 font-black text-lg tabular-nums">{total}</span>
+        </div>
       </div>
     );
   };
@@ -87,101 +94,109 @@ export default function DetailedAnalytics() {
   const InnerLabel = ({ x, y, width, height, value }) =>
     value > 0 ? (
       <text x={x + width / 2} y={y + height / 2} textAnchor="middle"
-        dominantBaseline="central" fill="white" fontSize={9}
-        fontFamily="monospace" fontWeight="bold">
+        dominantBaseline="central" fill="white" fontSize={14}
+        fontFamily="sans-serif" fontWeight="900">
         {value}
       </text>
     ) : null;
 
   const TopLabel = ({ x, y, width, value }) =>
     value > 0 ? (
-      <text x={x + width / 2} y={y - 5} textAnchor="middle"
-        fill="#94a3b8" fontSize={10} fontFamily="monospace">
+      <text x={x + width / 2} y={y - 10} textAnchor="middle"
+        fill="#64748b" fontSize={16} fontFamily="sans-serif" fontWeight="900">
         {value}
       </text>
     ) : null;
 
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans">
+      
+      {/* Background Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Navigation */}
       <div className="w-full max-w-[95%] xl:max-w-7xl flex justify-between items-center mb-8 relative z-10">
         <button
           onClick={() => navigate('/database')}
-          className="text-secondary hover:text-primary font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2"
+          className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Analytics
+          Back to Dashboard
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={fetchLeads}
-            className="text-secondary hover:text-primary font-mono text-xs uppercase px-4 py-2 border border-white/10 rounded"
+            className="text-slate-700 hover:text-purple-900 font-black text-sm uppercase px-8 py-4 border border-slate-300 bg-white hover:bg-slate-50 rounded-xl transition-colors shadow-sm tracking-widest"
           >
             Refresh
           </button>
-          <span className="font-mono text-xs text-blue-400 tracking-widest uppercase flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <span className="font-black text-base text-purple-900 tracking-widest uppercase flex items-center gap-3 bg-[#EBA7FF]/30 px-7 py-4 rounded-xl border border-[#EBA7FF]/60 shadow-sm">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Detailed Analytics
           </span>
         </div>
       </div>
 
-      <div className="glass-modal w-full max-w-[95%] xl:max-w-7xl p-8 relative z-10 flex flex-col gap-8 shadow-2xl">
+      <div className="bg-white w-full max-w-[95%] xl:max-w-7xl p-10 relative z-10 flex flex-col gap-10 shadow-2xl shadow-slate-200/60 rounded-3xl border border-slate-300">
 
         {/* Header */}
-        <div className="border-b border-white/10 pb-6">
-          <h1 className="text-3xl font-sans font-bold text-white tracking-tight">Detailed Analytics</h1>
-          <p className="text-secondary text-sm mt-1">{leads.length} total leads — live from Supabase.</p>
+        <div className="border-b border-slate-200 pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-5xl font-black text-slate-900 tracking-tight">System Analytics</h1>
+            <p className="text-slate-500 font-medium text-lg">{leads.length} total leads processed through the pipeline.</p>
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="py-32 text-center text-secondary font-mono animate-pulse text-sm tracking-widest">
-            LOADING DATA...
+          <div className="py-40 flex flex-col items-center justify-center gap-6 text-slate-500 font-bold tracking-widest text-xl uppercase">
+            <svg className="w-16 h-16 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading Analytics...
           </div>
         ) : (
           <>
             {/* ── KPI CARDS ─────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
-                { label: 'Total Leads',  value: leads.length, textCls: 'text-white',       bg: 'bg-white/5 border-white/10' },
-                { label: 'Deals Won',    value: wonCount,     textCls: 'text-green-300',    bg: 'bg-green-900/20 border-green-500/30' },
-                { label: 'Deals Lost',   value: lostCount,    textCls: 'text-red-300',      bg: 'bg-red-900/20 border-red-500/30' },
-                { label: 'Win Rate',     value: `${winRate}%`,textCls: 'text-blue-300',     bg: 'bg-blue-900/20 border-blue-500/30' },
+                { label: 'Total Leads',  value: leads.length, textCls: 'text-slate-900', bg: 'bg-slate-50 border-slate-200' },
+                { label: 'Deals Won',    value: wonCount,     textCls: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+                { label: 'Deals Lost',   value: lostCount,    textCls: 'text-rose-600',    bg: 'bg-rose-50 border-rose-200' },
+                { label: 'Win Rate',     value: `${winRate}%`,textCls: 'text-blue-600',   bg: 'bg-blue-50 border-blue-200' },
               ].map(kpi => (
-                <div key={kpi.label} className={`${kpi.bg} border rounded-xl p-5`}>
-                  <p className="text-secondary font-mono text-[10px] uppercase tracking-widest mb-2">
+                <div key={kpi.label} className={`${kpi.bg} border rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow`}>
+                  <p className="text-slate-500 font-black text-sm uppercase tracking-widest mb-3">
                     {kpi.label}
                   </p>
-                  <p className={`text-3xl font-bold ${kpi.textCls}`}>{kpi.value}</p>
+                  <p className={`text-5xl font-black tabular-nums tracking-tight ${kpi.textCls}`}>{kpi.value}</p>
                 </div>
               ))}
             </div>
 
             {/* ── TWO CHARTS ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
 
               {/* ════════════════════════════════════════════════
-                  CHART 1 — SALES FUNNEL
+                  CHART 1 — SALES FUNNEL (SCALED UP)
               ════════════════════════════════════════════════ */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-7 flex flex-col gap-6">
-                <div className="pb-4 border-b border-white/5">
-                  <h2 className="text-xl font-bold text-white tracking-tight">Sales Funnel</h2>
-                  <p className="text-secondary font-mono text-[10px] uppercase tracking-widest mt-1">
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-8 shadow-inner">
+                <div className="pb-5 border-b border-slate-200">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Sales Funnel</h2>
+                  <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
                     Pipeline stage progression &amp; conversion rates
                   </p>
                 </div>
 
-                <div className="flex flex-col items-center w-full gap-0">
+                <div className="flex flex-col items-center w-full gap-0 mt-4">
                   {funnelData.map((stage, index) => {
-                    const widthPct  = Math.max((stage.count / funnelMax) * 88, 16);
+                    const widthPct  = Math.max((stage.count / funnelMax) * 100, 20); // Scaled from 20 to 100
                     const prevStage = index > 0 ? funnelData[index - 1] : null;
                     const advRate   = prevStage && prevStage.count > 0
                       ? Math.round((stage.count / prevStage.count) * 100)
@@ -195,20 +210,17 @@ export default function DetailedAnalytics() {
 
                         {/* ── Connector + conversion label ── */}
                         {index > 0 && (
-                          <div className="flex flex-col items-center py-1.5 w-full">
-                            {/* SVG funnel neck lines */}
-                            <svg width="100%" height="20" viewBox="0 0 200 20" preserveAspectRatio="none" className="opacity-30">
-                              <line x1="50%" y1="0" x2="50%" y2="20" stroke={stage.color} strokeWidth="1.5" strokeDasharray="3 2" />
+                          <div className="flex flex-col items-center py-2 w-full">
+                            <svg width="100%" height="24" viewBox="0 0 200 24" preserveAspectRatio="none" className="opacity-40">
+                              <line x1="50%" y1="0" x2="50%" y2="24" stroke={stage.color} strokeWidth="3" strokeDasharray="4 4" />
                             </svg>
-                            <div className="flex items-center gap-2 -mt-1">
-                              {/* downward chevron */}
-                              <svg className="w-3 h-2.5" viewBox="0 0 12 8" fill="none">
-                                <path d="M6 8L0 0h12L6 8z" fill={stage.color + 'cc'} />
+                            <div className="flex items-center gap-2 mt-1 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm z-10 -translate-y-4">
+                              <svg className="w-3 h-3" viewBox="0 0 12 8" fill="none">
+                                <path d="M6 8L0 0h12L6 8z" fill={stage.color} />
                               </svg>
                               {advRate !== null && (
-                                <span className="font-mono text-[10px] tracking-wider whitespace-nowrap"
-                                  style={{ color: stage.color + 'cc' }}>
-                                  {advRate}% advance rate
+                                <span className="font-bold text-[11px] tracking-widest uppercase whitespace-nowrap text-slate-600">
+                                  {advRate}% advance
                                 </span>
                               )}
                             </div>
@@ -217,27 +229,25 @@ export default function DetailedAnalytics() {
 
                         {/* ── Stage bar ── */}
                         <div
-                          className="flex items-center justify-between px-4 py-3 rounded-lg cursor-default
-                                     hover:brightness-110 transition-all duration-200"
+                          className={`flex items-center justify-between px-6 py-5 rounded-2xl cursor-default hover:scale-[1.02] transition-transform duration-300 shadow-md border-2`}
                           style={{
                             width: `${widthPct}%`,
-                            background: `linear-gradient(135deg, ${stage.color}28, ${stage.color}12)`,
-                            border:     `1px solid ${stage.color}55`,
-                            boxShadow:  `0 0 20px ${stage.color}15`,
+                            backgroundColor: `${stage.color}15`, // Very light tint of the color
+                            borderColor: `${stage.color}40`,
                           }}
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="w-2 h-2 rounded-full flex-shrink-0"
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm"
                                  style={{ backgroundColor: stage.color }} />
-                            <span className="font-mono text-xs text-white tracking-wide truncate">
+                            <span className="font-black text-xl text-slate-900 tracking-wide truncate">
                               {stage.name}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                            <span className="text-secondary font-mono text-[10px]">
-                              {pctAll}% of all
+                          <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                            <span className="text-slate-500 font-bold text-xs uppercase tracking-widest hidden sm:block">
+                              {pctAll}% Total
                             </span>
-                            <span className="font-bold text-2xl" style={{ color: stage.color }}>
+                            <span className="font-black text-4xl tabular-nums" style={{ color: stage.color }}>
                               {stage.count}
                             </span>
                           </div>
@@ -247,107 +257,90 @@ export default function DetailedAnalytics() {
                   })}
 
                   {/* ── Lost pill ── */}
-                  <div className="flex justify-center mt-5 w-full">
-                    <div className="inline-flex items-center gap-4 px-5 py-3 rounded-xl"
-                         style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-red-400 font-mono text-xs tracking-widest uppercase">Closed — Lost</span>
+                  <div className="flex justify-center mt-8 w-full">
+                    <div className="inline-flex items-center gap-6 px-8 py-5 rounded-2xl bg-rose-50 border-2 border-rose-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-rose-600 shadow-sm" />
+                        <span className="text-rose-700 font-black text-lg tracking-widest uppercase">Closed — Lost</span>
                       </div>
-                      <span className="text-red-300 font-bold text-2xl">{lostCount}</span>
-                      {leads.length > 0 && (
-                        <span className="text-secondary font-mono text-[10px]">
-                          {((lostCount / leads.length) * 100).toFixed(1)}% of all leads
-                        </span>
-                      )}
+                      <span className="text-rose-600 font-black text-4xl tabular-nums">{lostCount}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* ── Stage colour legend ── */}
-                <div className="grid grid-cols-3 gap-x-3 gap-y-2 pt-4 border-t border-white/5">
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6 border-t border-slate-200 mt-4">
                   {funnelData.map(s => (
-                    <div key={s.name} className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                      <span className="font-mono text-[9px] text-secondary truncate">{s.name}</span>
+                    <div key={s.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                      <span className="font-bold text-xs text-slate-600 uppercase tracking-widest truncate">{s.name}</span>
                     </div>
                   ))}
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
-                    <span className="font-mono text-[9px] text-secondary">Closed — Lost</span>
-                  </div>
                 </div>
               </div>
 
               {/* ════════════════════════════════════════════════
                   CHART 2 — SOURCE × TEMPERATURE STACKED BAR
               ════════════════════════════════════════════════ */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-7 flex flex-col gap-6">
-                <div className="pb-4 border-b border-white/5">
-                  <h2 className="text-xl font-bold text-white tracking-tight">Lead Volume by Source</h2>
-                  <p className="text-secondary font-mono text-[10px] uppercase tracking-widest mt-1">
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col gap-6 shadow-inner h-full">
+                <div className="pb-5 border-b border-slate-200">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Lead Volume by Source</h2>
+                  <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mt-2">
                     Stacked by temperature — 🔥 Hot · 🌡️ Warm · ❄️ Cold
                   </p>
                 </div>
 
                 {sourceData.length === 0 ? (
-                  <div className="h-72 flex items-center justify-center text-secondary font-mono text-sm">
-                    No source data available yet.
+                  <div className="flex-1 flex items-center justify-center text-slate-500 font-bold text-xl uppercase tracking-widest">
+                    No source data available.
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={370}>
+                  <ResponsiveContainer width="100%" height={450}>
                     <BarChart
                       data={sourceData}
-                      margin={{ top: 26, right: 16, left: -10, bottom: 68 }}
-                      barCategoryGap="30%"
+                      margin={{ top: 30, right: 10, left: -20, bottom: 80 }}
+                      barCategoryGap="25%"
                     >
                       <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="rgba(255,255,255,0.04)"
+                        strokeDasharray="4 4"
+                        stroke="#e2e8f0"
                         vertical={false}
                       />
                       <XAxis
                         dataKey="source"
-                        tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#475569', fontSize: 13, fontWeight: 800, fontFamily: 'sans-serif' }}
                         axisLine={false}
                         tickLine={false}
-                        angle={-38}
+                        angle={-40}
                         textAnchor="end"
                         interval={0}
-                        height={65}
+                        height={85}
+                        dy={10}
                       />
                       <YAxis
                         allowDecimals={false}
-                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 14, fontWeight: 800, fontFamily: 'sans-serif' }}
                         axisLine={false}
                         tickLine={false}
-                        label={{
-                          value: 'Leads',
-                          angle: -90,
-                          position: 'insideLeft',
-                          fill: '#475569',
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                          dx: 12,
-                        }}
+                        dx={-10}
                       />
                       <Tooltip
                         content={<BarTooltip />}
-                        cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                        cursor={{ fill: 'rgba(0,0,0,0.03)' }}
                       />
                       <Legend
                         iconType="circle"
-                        iconSize={8}
-                        wrapperStyle={{ fontSize: 11, fontFamily: 'monospace', paddingTop: 6 }}
+                        iconSize={12}
+                        wrapperStyle={{ fontSize: 14, fontWeight: 800, fontFamily: 'sans-serif', paddingTop: 20 }}
                         formatter={(value) => {
                           const map = { Hot: '🔥 Hot', Warm: '🌡️ Warm', Cold: '❄️ Cold' };
-                          return <span style={{ color: TEMP_COLORS[value] }}>{map[value]}</span>;
+                          return <span style={{ color: TEMP_COLORS[value], marginLeft: 4 }}>{map[value]}</span>;
                         }}
                       />
 
                       {/* Cold — bottom segment */}
                       <Bar dataKey="Cold" name="Cold" stackId="t"
-                           fill={TEMP_COLORS.Cold} radius={[0, 0, 3, 3]}>
+                           fill={TEMP_COLORS.Cold} radius={[0, 0, 6, 6]}>
                         <LabelList dataKey="Cold" content={InnerLabel} />
                       </Bar>
 
@@ -358,7 +351,7 @@ export default function DetailedAnalytics() {
 
                       {/* Hot — top segment + total above bar */}
                       <Bar dataKey="Hot" name="Hot" stackId="t"
-                           fill={TEMP_COLORS.Hot} radius={[3, 3, 0, 0]}>
+                           fill={TEMP_COLORS.Hot} radius={[6, 6, 0, 0]}>
                         <LabelList dataKey="Hot"   content={InnerLabel} />
                         <LabelList dataKey="total" content={TopLabel} />
                       </Bar>
@@ -366,29 +359,29 @@ export default function DetailedAnalytics() {
                   </ResponsiveContainer>
                 )}
 
-                {/* Source summary table */}
+                {/* Source summary text/table */}
                 {sourceData.length > 0 && (
-                  <div className="pt-4 border-t border-white/5">
-                    <p className="font-mono text-[10px] text-secondary uppercase tracking-widest mb-3">
-                      Source Breakdown
+                  <div className="pt-6 border-t border-slate-200 mt-auto">
+                    <p className="font-black text-xs text-slate-500 uppercase tracking-widest mb-4">
+                      Source Distribution
                     </p>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-3">
                       {sourceData.map(src => {
                         const hotPct  = src.total > 0 ? Math.round((src.Hot  / src.total) * 100) : 0;
                         const warmPct = src.total > 0 ? Math.round((src.Warm / src.total) * 100) : 0;
                         const coldPct = 100 - hotPct - warmPct;
                         return (
-                          <div key={src.source} className="flex items-center gap-3">
-                            <span className="font-mono text-[10px] text-secondary w-24 truncate flex-shrink-0">
+                          <div key={src.source} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                            <span className="font-black text-sm text-slate-700 w-32 truncate flex-shrink-0">
                               {src.source}
                             </span>
                             {/* Mini stacked progress bar */}
-                            <div className="flex-1 h-3 rounded-full overflow-hidden bg-white/5 flex">
-                              {hotPct > 0  && <div className="h-full" style={{ width: `${hotPct}%`,  backgroundColor: TEMP_COLORS.Hot }} />}
-                              {warmPct > 0 && <div className="h-full" style={{ width: `${warmPct}%`, backgroundColor: TEMP_COLORS.Warm }} />}
-                              {coldPct > 0 && <div className="h-full" style={{ width: `${coldPct}%`, backgroundColor: TEMP_COLORS.Cold }} />}
+                            <div className="flex-1 h-4 rounded-full overflow-hidden bg-slate-100 flex shadow-inner">
+                              {hotPct > 0  && <div className="h-full transition-all" style={{ width: `${hotPct}%`,  backgroundColor: TEMP_COLORS.Hot }} title={`${hotPct}% Hot`} />}
+                              {warmPct > 0 && <div className="h-full transition-all" style={{ width: `${warmPct}%`, backgroundColor: TEMP_COLORS.Warm }} title={`${warmPct}% Warm`} />}
+                              {coldPct > 0 && <div className="h-full transition-all" style={{ width: `${coldPct}%`, backgroundColor: TEMP_COLORS.Cold }} title={`${coldPct}% Cold`} />}
                             </div>
-                            <span className="font-mono text-xs text-white font-bold w-6 text-right flex-shrink-0">
+                            <span className="font-black text-lg tabular-nums text-slate-900 w-10 text-right flex-shrink-0">
                               {src.total}
                             </span>
                           </div>
