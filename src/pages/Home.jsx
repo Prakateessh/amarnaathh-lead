@@ -218,7 +218,7 @@ export default function Home() {
               <div className="transition-colors duration-300">
                 {source.icon}
               </div>
-              <span className="font-black text-lg text-slate-700 group-hover:text-purple-900 tracking-widest text-center">
+              <span className="font-black text-xl text-slate-700 group-hover:text-purple-900 tracking-widest text-center">
                 {source.name}
               </span>
             </button>
