@@ -18,6 +18,10 @@ export default function Database() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isWiping, setIsWiping] = useState(false);
 
+  // 🛑 RBAC (Role-Based Access Control)
+  const userRole = localStorage.getItem('userRole') || 'BME';
+  const isAdmin = userRole === 'Admin';
+
   // 🎯 TARGET TRACKER STATE
   const [targetTurnover, setTargetTurnover] = useState(150000000);
 
@@ -68,7 +72,6 @@ export default function Database() {
   // ⚡ AUTO SAVE TARGET
   const handleTargetBlur = async (e) => {
     const val = e.target.value;
-
     setTargetTurnover(val);
 
     try {
@@ -80,7 +83,7 @@ export default function Database() {
     }
   };
 
-  // 🧨 PURGE LOGIC
+  // 🧨 PURGE LOGIC (Admin Only)
   const handleWipeDatabase = async () => {
     const confirmText = window.prompt(
       "⚠️ Type 'DELETE' to confirm full database wipe:"
@@ -90,16 +93,9 @@ export default function Database() {
 
     try {
       setIsWiping(true);
-
-      await supabase
-        .from('leads')
-        .delete()
-        .not('id', 'is', null);
-
+      await supabase.from('leads').delete().not('id', 'is', null);
       alert('✅ Database successfully wiped.');
-
       fetchDatabaseData();
-
       setShowAdmin(false);
     } catch (err) {
       alert('❌ Failed to wipe database.');
@@ -112,275 +108,240 @@ export default function Database() {
   // 📊 ANALYTICS CALCULATIONS
   // ==========================================
 
-  const activeLeads = leads.filter(
-    (l) => l.status !== 'Closed - Lost'
-  );
+  const activeLeads = leads.filter((l) => l.status !== 'Closed - Lost');
 
   const dealsWonValue = leads
     .filter((l) => l.status === 'Closed - Won')
-    .reduce(
-      (sum, lead) => sum + (Number(lead.price) || 0),
-      0
-    );
+    .reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
 
-  const totalValue = leads.reduce(
-    (sum, lead) => sum + (Number(lead.price) || 0),
-    0
-  );
+  const totalValue = leads.reduce((sum, lead) => sum + (Number(lead.price) || 0), 0);
 
   const hotPipelineValue = activeLeads
     .filter((l) => l.lead_temp === 'Hot')
     .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-
-  const hotPipelineCount = activeLeads.filter(
-    (l) => l.lead_temp === 'Hot'
-  ).length;
+  const hotPipelineCount = activeLeads.filter((l) => l.lead_temp === 'Hot').length;
 
   const warmPipelineValue = activeLeads
     .filter((l) => l.lead_temp === 'Warm')
     .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-
-  const warmPipelineCount = activeLeads.filter(
-    (l) => l.lead_temp === 'Warm'
-  ).length;
+  const warmPipelineCount = activeLeads.filter((l) => l.lead_temp === 'Warm').length;
 
   const coldPipelineValue = activeLeads
     .filter((l) => l.lead_temp === 'Cold' || !l.lead_temp)
     .reduce((sum, l) => sum + (Number(l.price) || 0), 0);
-
-  const coldPipelineCount = activeLeads.filter(
-    (l) => l.lead_temp === 'Cold' || !l.lead_temp
-  ).length;
+  const coldPipelineCount = activeLeads.filter((l) => l.lead_temp === 'Cold' || !l.lead_temp).length;
 
   const pieData = [
-    {
-      name: '🔥 Hot Deals',
-      value: hotPipelineCount,
-      color: '#ef4444'
-    },
-    {
-      name: '🌡️ Warm Deals',
-      value: warmPipelineCount,
-      color: '#f59e0b'
-    },
-    {
-      name: '❄️ Cold Deals',
-      value: coldPipelineCount,
-      color: '#06b6d4'
-    }
+    { name: '🔥 Hot Deals', value: hotPipelineCount, color: '#e11d48' }, // Rose-600
+    { name: '🌡️ Warm Deals', value: warmPipelineCount, color: '#f59e0b' }, // Amber-500
+    { name: '❄️ Cold Deals', value: coldPipelineCount, color: '#0284c7' }  // Cyan-600
   ].filter((d) => d.value > 0);
 
   // 🎯 ACHIEVEMENT %
-  const achievementPercentage =
-    targetTurnover > 0
-      ? Math.min(
-          (dealsWonValue / targetTurnover) * 100,
-          100
-        )
-      : 0;
+  const achievementPercentage = targetTurnover > 0 ? Math.min((dealsWonValue / targetTurnover) * 100, 100) : 0;
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col items-center py-12 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 relative overflow-hidden font-sans">
 
-      {/* BACKGROUND GLOW */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none"></div>
+      {/* BACKGROUND GLOWS (Light Theme) */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-[140px] pointer-events-none"></div>
 
       {/* NAVIGATION */}
       <div className="w-full max-w-[95%] xl:max-w-7xl flex justify-between items-center mb-8 relative z-10">
 
         <button
           onClick={() => navigate('/home')}
-          className="text-secondary hover:text-primary font-mono text-sm uppercase tracking-widest transition-colors flex items-center gap-2"
+          className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-
           Back to Routing
         </button>
 
         <div className="flex items-center gap-4">
-
           <button
             onClick={fetchDatabaseData}
-            className="text-secondary hover:text-primary font-mono text-xs uppercase px-4 py-2 border border-white/10 rounded"
+            className="text-slate-700 hover:text-purple-900 font-black text-sm uppercase px-6 py-4 border border-slate-300 bg-white hover:bg-slate-50 rounded-xl transition-colors shadow-sm"
           >
-            Refresh
+            Refresh Data
           </button>
 
-          <button
-            onClick={() => setShowAdmin(!showAdmin)}
-            className={`font-mono text-xs uppercase tracking-widest px-3 py-1 rounded border transition-colors ${
-              showAdmin
-                ? 'bg-red-900/30 border-red-500/50 text-red-400'
-                : 'bg-white/5 border-white/10 text-secondary hover:text-white'
-            }`}
-          >
-            {showAdmin ? 'Close Admin' : 'Admin Access'}
-          </button>
-
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdmin(!showAdmin)}
+              className={`font-black text-sm uppercase tracking-widest px-6 py-4 rounded-xl border transition-colors shadow-sm ${
+                showAdmin
+                  ? 'bg-rose-100 border-rose-300 text-rose-700 hover:bg-rose-200'
+                  : 'bg-white border-slate-300 text-slate-700 hover:text-purple-900 hover:border-[#EBA7FF]'
+              }`}
+            >
+              {showAdmin ? 'Close Admin' : 'Admin Access'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* MAIN CONTAINER */}
-      <div className="glass-modal w-full max-w-[95%] xl:max-w-7xl p-8 relative z-10 flex flex-col gap-8 shadow-2xl">
+      <div className="bg-white w-full max-w-[95%] xl:max-w-7xl p-10 relative z-10 flex flex-col gap-10 shadow-2xl shadow-slate-200/60 rounded-3xl border border-slate-300">
 
-        {/* ADMIN PANEL */}
-        {showAdmin && (
-          <div className="bg-red-900/10 border border-red-500/20 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6 animate-fade-in">
-
+        {/* ADMIN PANEL (Admin Only) */}
+        {showAdmin && isAdmin && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-inner">
             <div className="flex-1 w-full">
-              <h3 className="text-red-400 font-mono text-sm uppercase tracking-widest mb-2">
-                System Purge Protocol
+              <h3 className="text-rose-700 font-black text-lg uppercase tracking-widest mb-2 flex items-center gap-3">
+                ⚠️ System Purge Protocol
               </h3>
+              <p className="text-rose-600/80 font-medium text-base">Permanently delete all leads from the database. This cannot be undone.</p>
             </div>
-
             <button
               onClick={handleWipeDatabase}
               disabled={isWiping}
-              className="bg-red-600 hover:bg-red-500 text-white font-mono text-sm uppercase px-6 py-3 rounded whitespace-nowrap"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black text-base uppercase tracking-widest px-8 py-4 rounded-xl shadow-md transition-colors whitespace-nowrap"
             >
               {isWiping ? 'Wiping...' : 'PURGE DATABASE'}
             </button>
-
           </div>
         )}
 
         {/* HEADER */}
-        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-
-          <div className="flex items-center gap-4">
-
-            <h1 className="text-3xl font-sans font-bold text-white tracking-tight">
-              CRM Analytics
+        <div className="border-b border-slate-200 pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="flex items-center gap-5">
+            <h1 className="text-5xl font-black text-slate-900 tracking-tight">
+              {isAdmin ? 'CRM Analytics' : 'CRM Dashboard'}
             </h1>
-
-            <span className="bg-green-500/20 text-green-400 border border-green-500/50 px-3 py-1 rounded-full font-mono text-[10px] tracking-widest uppercase animate-pulse">
-              Live Data
+            <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-4 py-2 rounded-lg font-mono text-xs font-bold tracking-widest uppercase shadow-sm mt-2 flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              Live Grid
             </span>
-
           </div>
         </div>
 
         {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center text-secondary font-mono">
-            LOADING DATA...
+          <div className="py-24 flex flex-col items-center justify-center gap-6 text-slate-500 font-bold tracking-widest text-xl uppercase">
+            <svg className="w-16 h-16 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading Analytics...
+          </div>
+        ) : !isAdmin ? (
+          /* ==========================================
+             BME RESTRICTED VIEW
+             ========================================== */
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center gap-8 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner">
+            <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center border-4 border-white shadow-md">
+              <svg className="w-12 h-12 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="max-w-xl space-y-4">
+              <h2 className="text-3xl font-black text-slate-900">Access Restricted</h2>
+              <p className="text-lg text-slate-600 font-medium leading-relaxed">
+                You are currently logged in as a <strong className="text-purple-700">Business Management Executive (BME)</strong>. Financial overviews and high-level analytics are hidden.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/leadmanager')}
+              className="mt-4 bg-purple-900 hover:bg-[#EBA7FF] hover:text-purple-950 text-white font-black text-lg tracking-widest uppercase px-12 py-5 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(235,167,255,0.6)] flex items-center gap-3"
+            >
+              Open Lead Manager Table
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
           </div>
         ) : (
+          /* ==========================================
+             ADMIN FULL DASHBOARD VIEW
+             ========================================== */
           <>
             {/* KPI CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
-                <div className="text-secondary font-mono text-xs uppercase tracking-wider mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              
+              <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-slate-500 font-black text-sm uppercase tracking-widest mb-3">
                   Total Pipeline
                 </div>
-
-                <div className="text-3xl font-bold text-white">
+                <div className="text-4xl font-black text-slate-900 tabular-nums tracking-tight">
                   ₹{totalValue.toLocaleString('en-IN')}
                 </div>
               </div>
 
               {/* HOT */}
-              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-5 relative overflow-hidden">
-
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60"></div>
-
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-orange-400 font-mono text-xs uppercase tracking-wider">
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500 transform origin-left group-hover:scale-x-100 transition-transform"></div>
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-rose-700 font-black text-sm uppercase tracking-widest">
                     🔥 Hot Pipeline
                   </p>
-
-                  <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">
+                  <span className="font-bold text-xs text-rose-500/70 tracking-widest uppercase mt-0.5 bg-white px-2 py-1 rounded-md border border-rose-100">
                     {hotPipelineCount} leads
                   </span>
                 </div>
-
-                <p className="text-3xl font-bold text-red-300 tracking-tight">
+                <p className="text-4xl font-black text-rose-600 tracking-tight tabular-nums">
                   ₹{hotPipelineValue.toLocaleString('en-IN')}
                 </p>
-
               </div>
 
               {/* WARM */}
-              <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-5 relative overflow-hidden">
-
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-60"></div>
-
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-amber-400 font-mono text-xs uppercase tracking-wider">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-amber-500 transform origin-left group-hover:scale-x-100 transition-transform"></div>
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-amber-700 font-black text-sm uppercase tracking-widest">
                     🌡️ Warm Pipeline
                   </p>
-
-                  <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">
+                  <span className="font-bold text-xs text-amber-600/70 tracking-widest uppercase mt-0.5 bg-white px-2 py-1 rounded-md border border-amber-100">
                     {warmPipelineCount} leads
                   </span>
                 </div>
-
-                <p className="text-3xl font-bold text-amber-300 tracking-tight">
+                <p className="text-4xl font-black text-amber-600 tracking-tight tabular-nums">
                   ₹{warmPipelineValue.toLocaleString('en-IN')}
                 </p>
-
               </div>
 
               {/* COLD */}
-              <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-5 relative overflow-hidden">
-
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-60"></div>
-
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-cyan-400 font-mono text-xs uppercase tracking-wider">
+              <div className="bg-cyan-50 border border-cyan-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-cyan-500 transform origin-left group-hover:scale-x-100 transition-transform"></div>
+                <div className="flex justify-between items-start mb-3">
+                  <p className="text-cyan-700 font-black text-sm uppercase tracking-widest">
                     ❄️ Cold Pipeline
                   </p>
-
-                  <span className="font-mono text-[9px] text-slate-400 tracking-widest uppercase mt-0.5">
+                  <span className="font-bold text-xs text-cyan-600/70 tracking-widest uppercase mt-0.5 bg-white px-2 py-1 rounded-md border border-cyan-100">
                     {coldPipelineCount} leads
                   </span>
                 </div>
-
-                <p className="text-3xl font-bold text-cyan-300 tracking-tight">
+                <p className="text-4xl font-black text-cyan-600 tracking-tight tabular-nums">
                   ₹{coldPipelineValue.toLocaleString('en-IN')}
                 </p>
-
               </div>
             </div>
 
             {/* DONUT CHART */}
             {pieData.length > 0 && (
-              <div className="w-full bg-white/5 border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center h-[500px] relative overflow-hidden shadow-2xl">
-
-                <span className="text-secondary font-mono text-sm uppercase tracking-widest mb-4 z-10">
+              <div className="w-full bg-slate-50 border border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center h-[550px] relative overflow-hidden shadow-inner">
+                <span className="text-slate-600 font-black text-base uppercase tracking-widest mb-6 z-10">
                   Active Lead Temperature Distribution
                 </span>
 
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-
                     <Pie
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={110}
-                      outerRadius={140}
-                      paddingAngle={6}
+                      innerRadius={130}
+                      outerRadius={170}
+                      paddingAngle={5}
                       dataKey="value"
                       stroke="none"
                     >
                       {pieData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color}
-                        />
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
 
@@ -389,7 +350,7 @@ export default function Database() {
                       y="47%"
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-white text-5xl font-bold"
+                      className="fill-slate-900 text-6xl font-black"
                     >
                       {activeLeads.length}
                     </text>
@@ -399,214 +360,167 @@ export default function Database() {
                       y="58%"
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-secondary text-xs font-mono tracking-widest"
+                      className="fill-slate-500 text-sm font-bold uppercase tracking-widest"
                     >
                       ACTIVE DEALS
                     </text>
 
-                    <Tooltip />
-
-                    <Legend />
-
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold', padding: '12px 20px' }}
+                      itemStyle={{ color: '#0f172a' }}
+                    />
+                    <Legend wrapperStyle={{ fontWeight: 'bold', paddingTop: '20px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             )}
 
             {/* ========================================== */}
-            {/* TARGET TRACKER */}
+            {/* TARGET TRACKER (Light Theme & Heliotrope) */}
             {/* ========================================== */}
-            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-cyan-500/5 to-blue-500/10 p-8 shadow-[0_0_40px_rgba(16,185,129,0.12)]">
+            <div className="relative overflow-hidden rounded-3xl border border-purple-200 bg-white p-10 shadow-[0_0_40px_rgba(235,167,255,0.2)]">
+              
+              {/* GLOW OVERLAYS */}
+              <div className="absolute -top-20 -right-20 w-80 h-80 bg-[#EBA7FF]/20 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-purple-300/20 rounded-full blur-[100px] pointer-events-none"></div>
 
-              {/* GLOW */}
-              <div className="absolute -top-20 -right-20 w-72 h-72 bg-emerald-400/10 rounded-full blur-[100px]"></div>
-
-              <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-cyan-400/10 rounded-full blur-[100px]"></div>
-
-              <div className="relative z-10 flex flex-col gap-8">
+              <div className="relative z-10 flex flex-col gap-10">
 
                 {/* HEADER */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                   <div>
-                    <p className="text-emerald-400 font-mono text-xs tracking-[0.3em] uppercase mb-2">
+                    <p className="text-purple-600 font-black text-sm tracking-[0.3em] uppercase mb-3">
                       Revenue Target Progress
                     </p>
-
-                    <h2 className="text-5xl font-black text-white tracking-tight">
+                    <h2 className="text-6xl font-black text-slate-900 tracking-tight">
                       {achievementPercentage.toFixed(1)}%
                     </h2>
-
-                    <p className="text-slate-400 mt-2 text-sm">
+                    <p className="text-slate-500 mt-3 text-base font-bold">
                       Goal accomplishment status
                     </p>
                   </div>
 
-                  {/* CIRCLE */}
-                  <div className="relative w-36 h-36 flex items-center justify-center">
-
+                  {/* CIRCULAR PROGRESS */}
+                  <div className="relative w-44 h-44 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
-
+                      {/* Background Track */}
                       <circle
-                        cx="72"
-                        cy="72"
-                        r="58"
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeWidth="10"
+                        cx="88"
+                        cy="88"
+                        r="74"
+                        stroke="#f1f5f9" 
+                        strokeWidth="12"
                         fill="transparent"
                       />
-
+                      {/* Gradient Fill Track */}
                       <circle
-                        cx="72"
-                        cy="72"
-                        r="58"
-                        stroke="url(#grad)"
-                        strokeWidth="10"
+                        cx="88"
+                        cy="88"
+                        r="74"
+                        stroke="url(#purpleGrad)"
+                        strokeWidth="12"
                         fill="transparent"
                         strokeLinecap="round"
-                        strokeDasharray={364.4}
+                        strokeDasharray={465} 
                         strokeDashoffset={
-                          364.4 -
-                          (364.4 * achievementPercentage) / 100
+                          465 - (465 * achievementPercentage) / 100
                         }
                         style={{
-                          transition:
-                            'stroke-dashoffset 1s ease'
+                          transition: 'stroke-dashoffset 1.5s ease-out'
                         }}
                       />
-
                       <defs>
-                        <linearGradient id="grad">
-                          <stop
-                            offset="0%"
-                            stopColor="#10b981"
-                          />
-
-                          <stop
-                            offset="50%"
-                            stopColor="#06b6d4"
-                          />
-
-                          <stop
-                            offset="100%"
-                            stopColor="#3b82f6"
-                          />
+                        <linearGradient id="purpleGrad">
+                          <stop offset="0%" stopColor="#7e22ce" /> {/* purple-700 */}
+                          <stop offset="100%" stopColor="#EBA7FF" /> {/* heliotrope */}
                         </linearGradient>
                       </defs>
-
                     </svg>
 
                     <div className="text-center">
-                      <div className="text-3xl font-black text-white">
+                      <div className="text-4xl font-black text-slate-900">
                         {achievementPercentage.toFixed(0)}%
                       </div>
-
-                      <div className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
+                      <div className="text-xs font-bold tracking-widest text-slate-400 uppercase mt-1">
                         Achieved
                       </div>
                     </div>
-
                   </div>
                 </div>
 
-                {/* PROGRESS BAR */}
-                <div className="flex flex-col gap-3">
-
-                  <div className="flex justify-between text-xs font-mono uppercase tracking-wider">
-
-                    <span className="text-slate-400">
-                      Progress
-                    </span>
-
-                    <span className="text-emerald-400">
+                {/* LINEAR PROGRESS BAR */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between text-sm font-black uppercase tracking-widest">
+                    <span className="text-slate-500">Progress</span>
+                    <span className="text-purple-700 tabular-nums">
                       ₹{dealsWonValue.toLocaleString('en-IN')} /
-                      ₹{Number(
-                        targetTurnover
-                      ).toLocaleString('en-IN')}
+                      ₹{Number(targetTurnover).toLocaleString('en-IN')}
                     </span>
-
                   </div>
 
-                  <div className="h-5 w-full rounded-full bg-black/30 overflow-hidden border border-white/10">
-
+                  <div className="h-6 w-full rounded-full bg-slate-100 overflow-hidden border border-slate-200 shadow-inner">
                     <div
                       className="h-full rounded-full relative overflow-hidden"
                       style={{
-                        width: `${Math.min(
-                          achievementPercentage,
-                          100
-                        )}%`,
-                        transition: 'width 1s ease',
-                        background:
-                          'linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)'
+                        width: `${Math.min(achievementPercentage, 100)}%`,
+                        transition: 'width 1.5s ease-out',
+                        background: 'linear-gradient(90deg, #7e22ce 0%, #EBA7FF 100%)'
                       }}
                     >
-                      <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.35),transparent)] animate-pulse"></div>
+                      <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.4),transparent)] animate-pulse"></div>
                     </div>
-
                   </div>
                 </div>
 
-                {/* REVENUE + TARGET */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
+                {/* REVENUE + TARGET INPUTS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* REVENUE */}
-                  <div className="bg-black/20 border border-green-500/20 rounded-xl p-5 backdrop-blur-sm">
-
-                    <div className="text-secondary text-xs font-mono uppercase tracking-widest mb-2">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 shadow-sm">
+                    <div className="text-emerald-700 text-sm font-black uppercase tracking-widest mb-3">
                       ✅ Total Revenue Won
                     </div>
-
-                    <div className="text-3xl font-black text-green-400">
+                    <div className="text-4xl font-black text-emerald-600 tabular-nums tracking-tight">
                       ₹{dealsWonValue.toLocaleString('en-IN')}
                     </div>
-
                   </div>
 
                   {/* TARGET */}
-                  <div className="bg-black/20 border border-blue-500/20 rounded-xl p-5 backdrop-blur-sm">
-
-                    <div className="text-secondary text-xs font-mono uppercase tracking-widest mb-2">
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <div className="text-slate-600 text-sm font-black uppercase tracking-widest mb-3">
                       🎯 Target Turnover
                     </div>
-
-                    <div className="flex items-center gap-2">
-
-                      <span className="text-blue-300 text-3xl font-black">
-                        ₹
-                      </span>
-
+                    <div className="flex items-center gap-3">
+                      <span className="text-purple-700 text-4xl font-black">₹</span>
                       <input
                         type="number"
                         defaultValue={targetTurnover}
                         onBlur={handleTargetBlur}
-                        className="bg-navy border border-blue-500/40 px-4 py-2 rounded-lg text-blue-300 font-black text-2xl w-full focus:outline-none focus:border-cyan-400 transition-all"
+                        className="bg-white border border-slate-300 px-5 py-3 rounded-xl text-slate-900 font-black text-3xl w-full focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] transition-all shadow-sm tabular-nums"
                       />
-
                     </div>
-
                   </div>
                 </div>
               </div>
             </div>
 
             {/* NAVIGATION BUTTONS */}
-            <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-
+            <div className="flex flex-col md:flex-row justify-center items-center gap-6 mt-4">
               <button
                 onClick={() => navigate('/analytics')}
-                className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3"
+                className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-purple-900 font-black text-base tracking-widest uppercase px-10 py-5 rounded-2xl transition-all flex items-center gap-3 shadow-sm hover:shadow-md"
               >
                 Detailed Analytics
               </button>
 
               <button
                 onClick={() => navigate('/leadmanager')}
-                className="bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 hover:text-white font-mono text-sm tracking-widest uppercase px-8 py-4 rounded-lg transition-all flex items-center gap-3"
+                className="bg-purple-900 hover:bg-[#EBA7FF] text-white hover:text-purple-950 font-black text-base tracking-widest uppercase px-10 py-5 rounded-2xl transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-[0_0_20px_rgba(235,167,255,0.6)]"
               >
                 Lead Manager
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </button>
-
             </div>
           </>
         )}
