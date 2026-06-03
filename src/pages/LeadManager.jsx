@@ -6,7 +6,6 @@ import * as XLSX from 'xlsx';
 // ── DATE FORMATTING UTILITY ────────────────────────────────────────────────
 const formatDisplayDate = (dateStr) => {
   if (!dateStr) return '—';
-  // Manually parse YYYY-MM-DD to completely avoid Timezone shift bugs
   const parts = dateStr.split('T')[0].split('-');
   if (parts.length === 3) {
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -18,7 +17,6 @@ const formatDisplayDate = (dateStr) => {
 // ── BULLETPROOF NOTE UTILITIES (UPGRADED EDITABLE PARSER) ──────────────────
 const getParsedNotes = (notesStr) => {
   if (typeof notesStr !== 'string' || !notesStr.trim()) return [];
-  // Split the giant string intelligently every time it sees a [YYYY-MM-DD HH:MM] timestamp
   const blocks = notesStr.split(/(?=\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\] \[.*?\])/).filter(l => l.trim() !== '');
   
   return blocks.map((block, index) => {
@@ -26,7 +24,6 @@ const getParsedNotes = (notesStr) => {
     if (m) {
       return { index, timestamp: m[1], user: m[2], text: m[3].trim() };
     }
-    // Safety Fallback: If a note is malformed, it won't disappear, it becomes a "System" note
     return { index, timestamp: 'Legacy/Unknown', user: 'System', text: block.trim() };
   });
 };
@@ -34,7 +31,6 @@ const getParsedNotes = (notesStr) => {
 const getLatestNotePreview = (notesStr) => {
   const parsed = getParsedNotes(notesStr);
   if (!parsed.length) return null;
-  // Strip newlines just for the single-line table preview
   let text = parsed[parsed.length - 1].text.replace(/\n/g, ' '); 
   return text.length > 75 ? text.slice(0, 75) + '…' : text;
 };
@@ -49,7 +45,7 @@ const getInitials = (name) => {
 
 // ── FLASHY VIBRANT BADGES ──────────────────────────────────────────────────────
 const STATUS_STYLE = {
-  'New':           'bg-slate-900 text-white shadow-md', // Midnight Black
+  'New':           'bg-slate-900 text-white shadow-md',
   'Contacted':     'bg-blue-600 text-white shadow-md',
   'Quoted / Demo': 'bg-amber-500 text-white shadow-md',
   'Negotiation':   'bg-purple-600 text-white shadow-md',
@@ -274,7 +270,6 @@ export default function LeadManager() {
       const parsed = getParsedNotes(profileLead.notes);
       parsed[editingNoteIndex].text = editingNoteText.trim();
       
-      // Stitch back together
       const newNotesStr = parsed.map(p => `[${p.timestamp}] [${p.user}] ${p.text}`).join('\n');
       
       await supabase.from('leads').update({ notes: newNotesStr }).eq('id', profileLead.id);
@@ -336,7 +331,6 @@ export default function LeadManager() {
     setSortConfig({ key: null, direction: 'asc' });
   };
 
-  // ── 🚨 RESTORED MISSING ACTIVE CHIPS LOGIC 🚨 ──────────────────────────────
   const activeChips = useMemo(() => {
     const chips = [];
     filters.source.forEach(s    => chips.push({ label: `Source: ${s}`,  remove: () => toggleFilter('source', s) }));
@@ -435,7 +429,7 @@ export default function LeadManager() {
               <section>
                 <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Requirement</p>
                 <textarea value={editData.requirement || ''} rows={4} onChange={e => handleEditChange('requirement', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-900 text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-sm font-medium leading-relaxed" />
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-700 font-medium text-lg leading-relaxed focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-sm" />
               </section>
 
               <section>
@@ -554,7 +548,7 @@ export default function LeadManager() {
               <div className="w-1/3 flex-shrink-0 border-r border-slate-200 p-10 flex flex-col bg-white">
                 <p className="font-black text-2xl text-slate-900 mb-6">Append Update</p>
                 <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Type new update or interaction..."
-                  className="w-full flex-1 bg-slate-50 border border-slate-300 rounded-2xl p-6 text-slate-900 font-medium text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-inner leading-relaxed mb-6" />
+                  className="w-full flex-1 bg-slate-50 border border-slate-300 rounded-2xl p-6 text-slate-700 font-medium text-lg leading-relaxed focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] resize-none transition-all shadow-inner mb-6" />
                 <div className="flex flex-col gap-4">
                   <select value={noteUser} onChange={e => setNoteUser(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-5 py-4 text-slate-800 font-bold text-lg focus:outline-none focus:bg-white focus:border-purple-600 focus:ring-2 focus:ring-[#EBA7FF] cursor-pointer shadow-sm transition-all">
@@ -611,14 +605,14 @@ export default function LeadManager() {
                           {isEditing ? (
                             <div className="flex flex-col gap-4 animate-fade-in">
                               <textarea value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)}
-                                className="w-full bg-slate-50 border border-purple-300 rounded-xl p-5 text-slate-900 font-medium text-lg focus:ring-2 focus:ring-[#EBA7FF] resize-none shadow-inner leading-relaxed" rows={5} />
+                                className="w-full bg-slate-50 border border-purple-300 rounded-xl p-5 text-slate-700 font-medium text-lg leading-relaxed focus:ring-2 focus:ring-[#EBA7FF] resize-none shadow-inner" rows={5} />
                               <div className="flex justify-end gap-3">
                                 <button onClick={() => setEditingNoteIndex(null)} className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
                                 <button onClick={handleSaveEditedNote} className="px-6 py-3 bg-emerald-500 text-white font-black uppercase tracking-widest text-sm rounded-xl shadow-md hover:bg-emerald-600 transition-colors">Save Edits</button>
                               </div>
                             </div>
                           ) : (
-                            <p className={`text-[17px] whitespace-pre-wrap leading-relaxed font-medium ${isFirst ? 'text-slate-900' : 'text-slate-700'}`}>
+                            <p className="text-lg font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
                               {note.text}
                             </p>
                           )}
@@ -767,7 +761,7 @@ export default function LeadManager() {
       <div className="w-full max-w-[95%] xl:max-w-[95%] flex justify-between items-center mb-8 relative z-10">
         <button onClick={() => navigate(isAdmin ? '/database' : '/home')} className="text-slate-600 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-colors flex items-center gap-3 bg-white px-6 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          {isAdmin ? 'Back to Analytics' : 'Back to Home'}
+          {isAdmin ? 'Back to Dashboard' : 'Back to Home'}
         </button>
         <div className="flex gap-5 items-center">
           <button onClick={() => setShowReminders(true)} className="relative text-slate-700 hover:text-purple-900 font-black text-base uppercase tracking-widest transition-all flex items-center gap-3 bg-white px-7 py-4 rounded-xl border border-slate-300 shadow-sm hover:shadow-md hover:border-[#EBA7FF] hover:bg-[#EBA7FF]/10">
@@ -928,11 +922,11 @@ export default function LeadManager() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-6 px-5"><span className="text-slate-800 font-medium text-base line-clamp-3 leading-relaxed">{lead.requirement || <span className="text-slate-400 italic font-normal">No requirement provided</span>}</span></td>
+                        <td className="py-6 px-5"><span className="text-slate-700 font-medium text-base leading-relaxed line-clamp-2">{lead.requirement || <span className="text-slate-400 italic font-normal">No requirement provided</span>}</span></td>
                         <td className="py-6 px-5">
                           {latestNote ? (
                             <div className="flex flex-col gap-2 bg-slate-100/50 group-hover:bg-white p-4 rounded-xl border border-slate-200 transition-colors shadow-sm">
-                              <p className="text-slate-700 text-base leading-relaxed line-clamp-2 italic font-medium truncate">"{latestNote}"</p>
+                              <p className="text-slate-700 font-medium text-base leading-relaxed line-clamp-2">"{latestNote}"</p>
                               {noteCount > 1 && <span className="text-purple-800 font-bold text-xs uppercase tracking-widest">+{noteCount - 1} earlier entr{noteCount - 1 === 1 ? 'y' : 'ies'}</span>}
                             </div>
                           ) : <span className="text-slate-400 font-medium text-sm italic">No notes recorded</span>}
