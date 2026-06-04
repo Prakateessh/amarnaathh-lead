@@ -792,10 +792,6 @@ export default function LeadManager() {
             <button onClick={handleDownloadExcel} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 hover:text-purple-900 font-black text-sm tracking-widest uppercase px-8 py-4 rounded-xl transition-colors flex items-center gap-3 shadow-sm">
               <svg className="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Export{processedLeads.length !== leads.length ? ` (${processedLeads.length})` : ''}
             </button>
-                    <button onClick={() => fetch('https://python-backend-tdjw.onrender.com/api/drive/export', { method: 'POST' })
-                    .then(r => r.json()).then(d => alert(`✅ Uploaded: ${d.uploaded?.join(', ') || 'Done'}`))}
-                    className="bg-white border border-slate-300 ...your existing button styles...">
-                    📤 Export to Drive </button>
             <button onClick={fetchLeads} className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm uppercase tracking-widest px-8 py-4 rounded-xl transition-colors border border-slate-300 shadow-sm">Refresh</button>
           </div>
         </div>
