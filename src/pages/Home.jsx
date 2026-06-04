@@ -70,7 +70,7 @@ export default function Home() {
     } catch (err) { console.error("Error fetching calendar data:", err.message); }
   };
 
-  // ── STEP 1: FETCH & CLASSIFY (WITH SESSION CACHING & STREAMING) ──────────────────────
+  // ── STEP 1: FETCH RAW LEADS (FAST) THEN STREAM CLASSIFICATION ──────────────────────
   const handleInitiateExport = async (forceRefetch = false) => {
     if (isFetchingAI || isUploading) return;
 
@@ -92,8 +92,7 @@ export default function Home() {
     setProgress({ current: 0, total: 0 });
 
     try {
-      // 1) Fetch all leads from backend (the backend still returns pre‑classified data,
-      //    but we ignore the classification and re‑classify every lead via the streaming endpoint)
+      // 1) Fetch raw leads from backend (no classification)
       const res = await fetch('https://python-backend-tdjw.onrender.com/api/drive/fetch-and-classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,25 +100,24 @@ export default function Home() {
       });
       const data = await res.json();
 
-      if (data.error || (data.errors && data.errors.length > 0 && data.total === 0)) {
-        setExportMsg(`❌ ${data.errors?.[0] || 'Fetch Error. Check Python logs.'}`);
+      if (data.errors?.length > 0 && data.leads?.length === 0) {
+        setExportMsg(`❌ ${data.errors[0]}`);
         setIsFetchingAI(false);
         return;
       }
-      if (data.total === 0) {
+      if (!data.leads || data.leads.length === 0) {
         setExportMsg('⚠️ No new leads found for Yesterday and Today.');
         setIsFetchingAI(false);
         return;
       }
 
-      // Combine all leads (ignore the backend's classification)
-      const allRawLeads = [...(data.user1 || []), ...(data.user2 || []), ...(data.unclassified || [])];
+      const allRawLeads = data.leads;
       const dateRange = data.date_range || '';
 
       // Initialise empty columns
       setExportData({ user1: [], user2: [], unclassified: [], date_range: dateRange });
       setProgress({ current: 0, total: allRawLeads.length });
-      setIsReviewModalOpen(true);       // show modal immediately so user can see progress
+      setIsReviewModalOpen(true);   // show modal immediately
 
       // 2) Stream‑classify each lead one by one
       for (let i = 0; i < allRawLeads.length; i++) {
@@ -133,7 +131,7 @@ export default function Home() {
           const result = await classifyRes.json();
           const category = result.category || 'Unclassified';
 
-          // Add a stable frontend id if not already present
+          // Generate stable frontend_id if not present
           if (!lead.frontend_id) {
             lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
           }
@@ -146,8 +144,7 @@ export default function Home() {
             return updated;
           });
         } catch (err) {
-          console.warn('Classification failed for lead:', lead.name, err);
-          // If classification fails, put into unclassified
+          // classification failed – put in unclassified
           if (!lead.frontend_id) {
             lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
           }
@@ -159,11 +156,10 @@ export default function Home() {
         setProgress({ current: i + 1, total: allRawLeads.length });
       }
 
-      // After stream finishes, cache the final state in sessionStorage
+      // Cache final result
       setExportData(prev => {
-        const final = { ...prev };
-        sessionStorage.setItem('cachedExportData', JSON.stringify(final));
-        return final;
+        sessionStorage.setItem('cachedExportData', JSON.stringify(prev));
+        return prev;
       });
 
     } catch (err) {
