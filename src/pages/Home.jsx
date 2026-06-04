@@ -18,12 +18,17 @@ const formatDisplayDate = (dateStr) => {
   return dateStr;
 };
 
+const [isExporting, setIsExporting] = useState(false);
+const [exportMsg,   setExportMsg]   = useState('');
+
 export default function Home() {
   const navigate = useNavigate();
 
   // 🛑 RBAC (Role-Based Access Control)
   const userRole = localStorage.getItem('userRole') || 'BME';
   const isAdmin = userRole === 'Admin';
+
+
 
   // === REMINDERS & CALENDAR STATE ===
   const [showReminders, setShowReminders] = useState(false);
@@ -49,6 +54,36 @@ export default function Home() {
       setCalendarLeads(data || []);
     } catch (err) {
       console.error("Error fetching calendar data:", err.message);
+    }
+  };
+
+  const handleExportToDrive = async () => {
+    if (isExporting) return; 
+    const indiamartCookie = localStorage.getItem('im_cookie') || '';
+
+    setIsExporting(true);
+    setExportMsg('');
+
+     try {
+        const res = await fetch(
+          'https://python-backend-tdjw.onrender.com/api/drive/export',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ indiamart_cookie: indiamartCookie }),
+          }
+    );
+      const data = await res.json();
+ 
+      if (data.error) {
+        setExportMsg(`❌ ${data.error}`);
+      } else {
+        setExportMsg(data.message || '✅ Export started! Check Google Drive in ~1 min.');
+      }
+    } catch (err) {
+      setExportMsg('❌ Failed to connect to server.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -243,6 +278,46 @@ export default function Home() {
           Access Master Database
         </button>
       </div>
+
+      <div className="flex flex-col items-center gap-3 w-full max-w-md">
+  <button
+    onClick={handleExportToDrive}
+    disabled={isExporting}
+    className={`w-full h-20 font-black text-xl tracking-widest uppercase rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${
+      isExporting
+        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+        : 'bg-emerald-700 hover:bg-emerald-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+    }`}
+  >
+    {isExporting ? (
+      <>
+        <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        Exporting to Drive...
+      </>
+    ) : (
+      <>
+        <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6.5 20Q4.22 20 2.61 18.43 1 16.85 1 14.58q0-1.95 1.17-3.48 1.18-1.53 3.08-1.95.51-2.29 2.39-3.72Q9.52 4 12 4q2.93 0 4.96 2.04Q19 8.07 19 11q1.73.2 2.86 1.5Q23 13.8 23 15.5q0 1.88-1.31 3.19T18.5 20zm-1-2h13q1.05 0 1.78-.72.72-.73.72-1.78 0-1.05-.72-1.78-.73-.72-1.78-.72H16v-2q0-2.07-1.46-3.54Q13.07 6 11 6 8.93 6 7.46 7.46 6 8.93 6 11h-.5q-1.25 0-2.12.88Q2.5 12.75 2.5 14t.88 2.12Q4.25 17 5.5 17zm6.5-5z"/>
+        </svg>
+        Send to Google Drive
+      </>
+    )}
+  </button>
+ 
+  {/* Status message shown below button */}
+  {exportMsg && (
+    <p className={`text-sm font-bold text-center px-5 py-3 rounded-xl border w-full ${
+      exportMsg.startsWith('❌')
+        ? 'bg-rose-50 border-rose-200 text-rose-700'
+        : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+    }`}>
+      {exportMsg}
+    </p>
+  )}
+</div>
 
       {/* ── MODAL: REMINDERS & CALENDAR (LIGHT THEME) ───────────────────────────── */}
       {showReminders && (
