@@ -296,7 +296,7 @@ export default function Home() {
               </div>
               <div className="flex gap-4">
                 {/* 🔄 Re-fetch Button */}
-                <button onClick={() => handleInitiateExport(true)} disabled={isFetchingAI || isUploading} className="px-6 py-4 font-black tracking-widest text-xs uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                <button onClick={() => handleInitiateExport(true)} disabled={isFetchingAI || isUploading} className="px-6 py-4 font-black tracking-widest text-m uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-colors shadow-sm flex items-center gap-2">
                   {isFetchingAI ? 'Fetching...' : '🔄 Re-fetch Data'}
                 </button>
                 <button onClick={() => setIsReviewModalOpen(false)} className="px-8 py-4 font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors shadow-sm">Cancel</button>
