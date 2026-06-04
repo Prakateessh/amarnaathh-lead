@@ -18,8 +18,7 @@ const formatDisplayDate = (dateStr) => {
   return dateStr;
 };
 
-const [isExporting, setIsExporting] = useState(false);
-const [exportMsg,   setExportMsg]   = useState('');
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -28,7 +27,8 @@ export default function Home() {
   const userRole = localStorage.getItem('userRole') || 'BME';
   const isAdmin = userRole === 'Admin';
 
-
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMsg,   setExportMsg]   = useState('');
 
   // === REMINDERS & CALENDAR STATE ===
   const [showReminders, setShowReminders] = useState(false);
