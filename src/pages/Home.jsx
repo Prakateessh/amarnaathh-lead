@@ -15,6 +15,24 @@ const formatDisplayDate = (dateStr) => {
   return dateStr;
 };
 
+// ── HELPER: Format IndiaMart Cookie properly ────────────────────────────────
+const normalizeCookie = (raw) => {
+  if (!raw) return '';
+  if (raw.includes(':') && (raw.includes("'") || raw.includes('"'))) {
+    const lines = raw.split('\n');
+    const formattedParts = [];
+    lines.forEach(line => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) return;
+      let key = line.slice(0, colonIdx).trim().replace(/^['"]|['"]$/g, '');
+      let val = line.slice(colonIdx + 1).trim().replace(/,$/, '').trim().replace(/^['"]|['"]$/g, '');
+      if (key) formattedParts.push(`${key}=${val}`);
+    });
+    return formattedParts.join('; ');
+  }
+  return raw.trim();
+};
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -49,10 +67,22 @@ export default function Home() {
     } catch (err) { console.error("Error fetching calendar data:", err.message); }
   };
 
-  // ── STEP 1: FETCH & CLASSIFY (OPENS MODAL) ───────────────────────────────
-  const handleInitiateExport = async () => {
+  // ── STEP 1: FETCH & CLASSIFY (WITH SESSION CACHING) ──────────────────────
+  const handleInitiateExport = async (forceRefetch = false) => {
     if (isFetchingAI || isUploading) return; 
-    const indiamartCookie = localStorage.getItem('im_cookie') || '';
+
+    // 🌟 SESSION CACHE CHECK
+    if (!forceRefetch) {
+      const cachedData = sessionStorage.getItem('cachedExportData');
+      if (cachedData) {
+        setExportData(JSON.parse(cachedData));
+        setIsReviewModalOpen(true);
+        return;
+      }
+    }
+
+    const rawCookie = localStorage.getItem('im_cookie') || '';
+    const formattedCookie = normalizeCookie(rawCookie);
 
     setIsFetchingAI(true);
     setExportMsg('');
@@ -61,16 +91,22 @@ export default function Home() {
       const res = await fetch('https://python-backend-tdjw.onrender.com/api/drive/fetch-and-classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ indiamart_cookie: indiamartCookie }),
+        body: JSON.stringify({ indiamart_cookie: formattedCookie }),
       });
       const data = await res.json();
  
       if (data.error || (data.errors && data.errors.length > 0 && data.total === 0)) {
-        setExportMsg(`❌ Fetch Error. Check Python logs.`);
+        setExportMsg(`❌ ${data.errors?.[0] || 'Fetch Error. Check Python logs.'}`);
       } else if (data.total === 0) {
         setExportMsg('⚠️ No new leads found for Yesterday and Today.');
       } else {
-        setExportData({ user1: data.user1 || [], user2: data.user2 || [], unclassified: data.unclassified || [], date_range: data.date_range || '' });
+        if (data.errors && data.errors.length > 0) console.warn("Partial fetch warning:", data.errors);
+        
+        const newExportData = { user1: data.user1 || [], user2: data.user2 || [], unclassified: data.unclassified || [], date_range: data.date_range || '' };
+        
+        setExportData(newExportData);
+        // Save to Session Storage
+        sessionStorage.setItem('cachedExportData', JSON.stringify(newExportData));
         setIsReviewModalOpen(true);
       }
     } catch (err) {
@@ -92,6 +128,8 @@ export default function Home() {
       const data = await res.json();
       setExportMsg(data.message || '✅ Upload started! Check Google Drive in ~30 sec.');
       setIsReviewModalOpen(false);
+      // Clear cache on successful upload so next time it fetches fresh
+      sessionStorage.removeItem('cachedExportData'); 
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
@@ -99,11 +137,10 @@ export default function Home() {
     }
   };
 
-  // ── HTML5 DRAG AND DROP HANDLERS ──────────────────────────────────────────
+  // ── HTML5 DRAG AND DROP HANDLERS (UPDATES CACHE) ──────────────────────────
   const handleDragStart = (e, item, sourceList) => {
     setDraggedItem({ item, sourceList });
     e.dataTransfer.effectAllowed = "move";
-    // Makes the ghost image slightly transparent
     setTimeout(() => { e.target.style.opacity = "0.4"; }, 0);
   };
 
@@ -120,14 +157,14 @@ export default function Home() {
 
     setExportData(prev => {
       const newData = { ...prev };
-      // 1. Remove from source array
       newData[draggedItem.sourceList] = newData[draggedItem.sourceList].filter(l => l.frontend_id !== draggedItem.item.frontend_id);
-      // 2. Add to target array
       newData[targetList] = [...newData[targetList], draggedItem.item];
+      
+      // Update session storage so sorting isn't lost if they close the modal
+      sessionStorage.setItem('cachedExportData', JSON.stringify(newData));
       return newData;
     });
   };
-
 
   // ── CALENDAR ALERT LOGIC ──────────────────────────────────────────────────
   const todayStr = new Date().toISOString().split('T')[0];
@@ -232,7 +269,7 @@ export default function Home() {
           </button>
 
           <div className="flex flex-col items-center gap-3 w-full flex-1">
-            <button onClick={handleInitiateExport} disabled={isFetchingAI || isUploading} className={`w-full h-20 font-black text-xl tracking-widest uppercase rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${isFetchingAI || isUploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'}`}>
+            <button onClick={() => handleInitiateExport(false)} disabled={isFetchingAI || isUploading} className={`w-full h-20 font-black text-xl tracking-widest uppercase rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${isFetchingAI || isUploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'}`}>
               {isFetchingAI ? (
                 <><svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Analyzing Leads...</>
               ) : isUploading ? (
@@ -258,6 +295,10 @@ export default function Home() {
                 <p className="text-slate-500 font-bold mt-1 tracking-widest text-sm uppercase">Date Range: {exportData.date_range} • Drag to reassign</p>
               </div>
               <div className="flex gap-4">
+                {/* 🔄 Re-fetch Button */}
+                <button onClick={() => handleInitiateExport(true)} disabled={isFetchingAI || isUploading} className="px-6 py-4 font-black tracking-widest text-xs uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                  {isFetchingAI ? 'Fetching...' : '🔄 Re-fetch Data'}
+                </button>
                 <button onClick={() => setIsReviewModalOpen(false)} className="px-8 py-4 font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors shadow-sm">Cancel</button>
                 <button onClick={handleConfirmUpload} disabled={isUploading} className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center gap-3">
                   {isUploading ? 'Uploading...' : 'Confirm & Upload'}
@@ -267,8 +308,6 @@ export default function Home() {
 
             {/* Three Columns Grid */}
             <div className="flex flex-1 overflow-hidden p-6 gap-6 bg-slate-100/50">
-              
-              {/* Columns Map */}
               {[
                 { id: 'user1', title: 'USER 1', color: 'blue' },
                 { id: 'user2', title: 'USER 2', color: 'purple' },
@@ -325,7 +364,6 @@ export default function Home() {
               <button onClick={() => setShowReminders(false)} className="text-slate-400 hover:text-purple-900 bg-slate-100 hover:bg-[#EBA7FF]/20 p-4 rounded-full transition-colors border border-slate-200 shadow-sm"><svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-b border-slate-200 pb-10">
-              {/* Today */}
               <div className="flex flex-col gap-5 bg-rose-50 border border-rose-200 p-8 rounded-2xl shadow-sm">
                 <h4 className="font-black text-xl text-rose-700 border-b border-rose-200 pb-4 flex items-center gap-3"><span>⚠️ Today & Overdue</span><span className="bg-rose-200 text-rose-900 px-4 py-1.5 rounded-full text-sm font-mono">{todayAlerts.length}</span></h4>
                 {currentTodayAlerts.length > 0 ? (
@@ -343,7 +381,6 @@ export default function Home() {
                   </div>
                 ) : <div className="flex-1 flex items-center justify-center min-h-[200px]"><span className="text-emerald-700 font-black text-xl bg-emerald-100 px-8 py-4 rounded-2xl border border-emerald-300 shadow-sm">✅ Clear for today</span></div>}
               </div>
-              {/* Upcoming */}
               <div className="flex flex-col gap-5 bg-slate-50 border border-slate-200 p-8 rounded-2xl shadow-sm">
                 <h4 className="font-black text-xl text-slate-800 border-b border-slate-200 pb-4 flex items-center gap-3"><span>📅 Tomorrow & Upcoming</span><span className="bg-slate-200 text-slate-800 px-4 py-1.5 rounded-full text-sm font-mono">{upcomingAlerts.length}</span></h4>
                 {currentUpcomingAlerts.length > 0 ? (
@@ -362,7 +399,6 @@ export default function Home() {
                 ) : <div className="flex-1 flex items-center justify-center min-h-[200px]"><span className="text-slate-500 font-black text-xl bg-white px-8 py-4 rounded-2xl border border-slate-200 shadow-sm">No upcoming alerts</span></div>}
               </div>
             </div>
-            {/* Calendar Grid */}
             <div>
               <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h4 className="font-black text-xl text-slate-800 uppercase tracking-widest">{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</h4>
