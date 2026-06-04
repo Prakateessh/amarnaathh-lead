@@ -44,10 +44,13 @@ export default function Home() {
   const [isFetchingAI, setIsFetchingAI] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
-  
+
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [exportData, setExportData] = useState({ user1: [], user2: [], unclassified: [], date_range: '' });
   const [draggedItem, setDraggedItem] = useState(null);
+
+  // 🧵 Streaming progress
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   // 📅 REMINDERS & CALENDAR STATE
   const [showReminders, setShowReminders] = useState(false);
@@ -67,9 +70,9 @@ export default function Home() {
     } catch (err) { console.error("Error fetching calendar data:", err.message); }
   };
 
-  // ── STEP 1: FETCH & CLASSIFY (WITH SESSION CACHING) ──────────────────────
+  // ── STEP 1: FETCH & CLASSIFY (WITH SESSION CACHING & STREAMING) ──────────────────────
   const handleInitiateExport = async (forceRefetch = false) => {
-    if (isFetchingAI || isUploading) return; 
+    if (isFetchingAI || isUploading) return;
 
     // 🌟 SESSION CACHE CHECK
     if (!forceRefetch) {
@@ -86,29 +89,83 @@ export default function Home() {
 
     setIsFetchingAI(true);
     setExportMsg('');
+    setProgress({ current: 0, total: 0 });
 
     try {
+      // 1) Fetch all leads from backend (the backend still returns pre‑classified data,
+      //    but we ignore the classification and re‑classify every lead via the streaming endpoint)
       const res = await fetch('https://python-backend-tdjw.onrender.com/api/drive/fetch-and-classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ indiamart_cookie: formattedCookie }),
       });
       const data = await res.json();
- 
+
       if (data.error || (data.errors && data.errors.length > 0 && data.total === 0)) {
         setExportMsg(`❌ ${data.errors?.[0] || 'Fetch Error. Check Python logs.'}`);
-      } else if (data.total === 0) {
-        setExportMsg('⚠️ No new leads found for Yesterday and Today.');
-      } else {
-        if (data.errors && data.errors.length > 0) console.warn("Partial fetch warning:", data.errors);
-        
-        const newExportData = { user1: data.user1 || [], user2: data.user2 || [], unclassified: data.unclassified || [], date_range: data.date_range || '' };
-        
-        setExportData(newExportData);
-        // Save to Session Storage
-        sessionStorage.setItem('cachedExportData', JSON.stringify(newExportData));
-        setIsReviewModalOpen(true);
+        setIsFetchingAI(false);
+        return;
       }
+      if (data.total === 0) {
+        setExportMsg('⚠️ No new leads found for Yesterday and Today.');
+        setIsFetchingAI(false);
+        return;
+      }
+
+      // Combine all leads (ignore the backend's classification)
+      const allRawLeads = [...(data.user1 || []), ...(data.user2 || []), ...(data.unclassified || [])];
+      const dateRange = data.date_range || '';
+
+      // Initialise empty columns
+      setExportData({ user1: [], user2: [], unclassified: [], date_range: dateRange });
+      setProgress({ current: 0, total: allRawLeads.length });
+      setIsReviewModalOpen(true);       // show modal immediately so user can see progress
+
+      // 2) Stream‑classify each lead one by one
+      for (let i = 0; i < allRawLeads.length; i++) {
+        const lead = allRawLeads[i];
+        try {
+          const classifyRes = await fetch('https://python-backend-tdjw.onrender.com/api/classify-single', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requirement: lead.requirement, lead }),
+          });
+          const result = await classifyRes.json();
+          const category = result.category || 'Unclassified';
+
+          // Add a stable frontend id if not already present
+          if (!lead.frontend_id) {
+            lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
+          }
+
+          // Append to the appropriate column
+          setExportData(prev => {
+            const updated = { ...prev };
+            const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
+            updated[target] = [...prev[target], lead];
+            return updated;
+          });
+        } catch (err) {
+          console.warn('Classification failed for lead:', lead.name, err);
+          // If classification fails, put into unclassified
+          if (!lead.frontend_id) {
+            lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
+          }
+          setExportData(prev => ({
+            ...prev,
+            unclassified: [...prev.unclassified, lead],
+          }));
+        }
+        setProgress({ current: i + 1, total: allRawLeads.length });
+      }
+
+      // After stream finishes, cache the final state in sessionStorage
+      setExportData(prev => {
+        const final = { ...prev };
+        sessionStorage.setItem('cachedExportData', JSON.stringify(final));
+        return final;
+      });
+
     } catch (err) {
       setExportMsg('❌ Failed to connect to server. Is Uvicorn running?');
     } finally {
@@ -128,8 +185,8 @@ export default function Home() {
       const data = await res.json();
       setExportMsg(data.message || '✅ Upload started! Check Google Drive in ~30 sec.');
       setIsReviewModalOpen(false);
-      // Clear cache on successful upload so next time it fetches fresh
-      sessionStorage.removeItem('cachedExportData'); 
+      // Clear cache so next time it fetches fresh
+      sessionStorage.removeItem('cachedExportData');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
@@ -159,7 +216,7 @@ export default function Home() {
       const newData = { ...prev };
       newData[draggedItem.sourceList] = newData[draggedItem.sourceList].filter(l => l.frontend_id !== draggedItem.item.frontend_id);
       newData[targetList] = [...newData[targetList], draggedItem.item];
-      
+
       // Update session storage so sorting isn't lost if they close the modal
       sessionStorage.setItem('cachedExportData', JSON.stringify(newData));
       return newData;
@@ -184,7 +241,7 @@ export default function Home() {
 
   todayAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
   upcomingAlerts.sort((a, b) => new Date(a.alertDate || 0) - new Date(b.alertDate || 0));
-  const urgentAlerts = [...todayAlerts, ...upcomingAlerts]; 
+  const urgentAlerts = [...todayAlerts, ...upcomingAlerts];
   const todayTotalPages = Math.ceil(todayAlerts.length / ITEMS_PER_PAGE);
   const upcomingTotalPages = Math.ceil(upcomingAlerts.length / ITEMS_PER_PAGE);
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
@@ -269,16 +326,53 @@ export default function Home() {
           </button>
 
           <div className="flex flex-col items-center gap-3 w-full flex-1">
-            <button onClick={() => handleInitiateExport(false)} disabled={isFetchingAI || isUploading} className={`w-full h-20 font-black text-xl tracking-widest uppercase rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${isFetchingAI || isUploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'}`}>
+            <button
+              onClick={() => handleInitiateExport(false)}
+              disabled={isFetchingAI || isUploading}
+              className={`w-full h-20 font-black text-xl tracking-widest uppercase rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-4 ${
+                isFetchingAI || isUploading
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-emerald-700 hover:bg-emerald-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+              }`}
+            >
               {isFetchingAI ? (
-                <><svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Analyzing Leads...</>
+                <>
+                  <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {progress.total > 0
+                    ? `Classifying ${progress.current}/${progress.total}`
+                    : 'Fetching Leads...'}
+                </>
               ) : isUploading ? (
-                <><svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Uploading...</>
+                <>
+                  <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Uploading...
+                </>
               ) : (
-                <><svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M6.5 20Q4.22 20 2.61 18.43 1 16.85 1 14.58q0-1.95 1.17-3.48 1.18-1.53 3.08-1.95.51-2.29 2.39-3.72Q9.52 4 12 4q2.93 0 4.96 2.04Q19 8.07 19 11q1.73.2 2.86 1.5Q23 13.8 23 15.5q0 1.88-1.31 3.19T18.5 20zm-1-2h13q1.05 0 1.78-.72.72-.73.72-1.78 0-1.05-.72-1.78-.73-.72-1.78-.72H16v-2q0-2.07-1.46-3.54Q13.07 6 11 6 8.93 6 7.46 7.46 6 8.93 6 11h-.5q-1.25 0-2.12.88Q2.5 12.75 2.5 14t.88 2.12Q4.25 17 5.5 17zm6.5-5z"/></svg> Fetch & Export to Drive</>
+                <>
+                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6.5 20Q4.22 20 2.61 18.43 1 16.85 1 14.58q0-1.95 1.17-3.48 1.18-1.53 3.08-1.95.51-2.29 2.39-3.72Q9.52 4 12 4q2.93 0 4.96 2.04Q19 8.07 19 11q1.73.2 2.86 1.5Q23 13.8 23 15.5q0 1.88-1.31 3.19T18.5 20zm-1-2h13q1.05 0 1.78-.72.72-.73.72-1.78 0-1.05-.72-1.78-.73-.72-1.78-.72H16v-2q0-2.07-1.46-3.54Q13.07 6 11 6 8.93 6 7.46 7.46 6 8.93 6 11h-.5q-1.25 0-2.12.88Q2.5 12.75 2.5 14t.88 2.12Q4.25 17 5.5 17zm6.5-5z" />
+                  </svg>
+                  Fetch & Export to Drive
+                </>
               )}
             </button>
-            {exportMsg && <p className={`text-sm font-bold text-center px-5 py-3 rounded-xl border w-full ${exportMsg.startsWith('❌') ? 'bg-rose-50 border-rose-200 text-rose-700' : exportMsg.startsWith('⚠️') ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>{exportMsg}</p>}
+            {exportMsg && (
+              <p className={`text-sm font-bold text-center px-5 py-3 rounded-xl border w-full ${
+                exportMsg.startsWith('❌')
+                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                  : exportMsg.startsWith('⚠️')
+                  ? 'bg-amber-50 border-amber-200 text-amber-700'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              }`}>
+                {exportMsg}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -292,15 +386,30 @@ export default function Home() {
             <div className="flex-shrink-0 flex justify-between items-center px-8 py-6 border-b border-slate-200 bg-white">
               <div>
                 <h3 className="text-3xl font-black text-slate-900">Review & Sort Leads</h3>
-                <p className="text-slate-500 font-bold mt-1 tracking-widest text-sm uppercase">Date Range: {exportData.date_range} • Drag to reassign</p>
+                <p className="text-slate-500 font-bold mt-1 tracking-widest text-sm uppercase">
+                  Date Range: {exportData.date_range} • Drag to reassign
+                </p>
               </div>
               <div className="flex gap-4">
                 {/* 🔄 Re-fetch Button */}
-                <button onClick={() => handleInitiateExport(true)} disabled={isFetchingAI || isUploading} className="px-6 py-4 font-black tracking-widest text-m uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                <button
+                  onClick={() => handleInitiateExport(true)}
+                  disabled={isFetchingAI || isUploading}
+                  className="px-6 py-4 font-black tracking-widest text-m uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-colors shadow-sm flex items-center gap-2"
+                >
                   {isFetchingAI ? 'Fetching...' : '🔄 Re-fetch Data'}
                 </button>
-                <button onClick={() => setIsReviewModalOpen(false)} className="px-8 py-4 font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors shadow-sm">Cancel</button>
-                <button onClick={handleConfirmUpload} disabled={isUploading} className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center gap-3">
+                <button
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className="px-8 py-4 font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors shadow-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmUpload}
+                  disabled={isUploading}
+                  className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center gap-3"
+                >
                   {isUploading ? 'Uploading...' : 'Confirm & Upload'}
                 </button>
               </div>
@@ -313,20 +422,26 @@ export default function Home() {
                 { id: 'user2', title: 'USER 2', color: 'purple' },
                 { id: 'unclassified', title: 'UNCLASSIFIED', color: 'rose' }
               ].map(col => (
-                <div 
-                  key={col.id} 
-                  onDragOver={handleDragOver} 
+                <div
+                  key={col.id}
+                  onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, col.id)}
-                  className={`flex flex-col flex-1 bg-white border-2 rounded-2xl overflow-hidden transition-colors ${draggedItem && draggedItem.sourceList !== col.id ? `border-${col.color}-300 bg-${col.color}-50/30` : 'border-slate-200 shadow-sm'}`}
+                  className={`flex flex-col flex-1 bg-white border-2 rounded-2xl overflow-hidden transition-colors ${
+                    draggedItem && draggedItem.sourceList !== col.id
+                      ? `border-${col.color}-300 bg-${col.color}-50/30`
+                      : 'border-slate-200 shadow-sm'
+                  }`}
                 >
                   <div className={`flex justify-between items-center px-6 py-4 border-b border-slate-200 bg-${col.color}-50`}>
                     <span className={`font-black text-lg text-${col.color}-800 tracking-widest uppercase`}>{col.title}</span>
-                    <span className={`font-mono font-bold text-${col.color}-900 bg-${col.color}-200 px-3 py-1 rounded-lg`}>{exportData[col.id].length}</span>
+                    <span className={`font-mono font-bold text-${col.color}-900 bg-${col.color}-200 px-3 py-1 rounded-lg`}>
+                      {exportData[col.id].length}
+                    </span>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                     {exportData[col.id].map(lead => (
-                      <div 
+                      <div
                         key={lead.frontend_id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead, col.id)}
@@ -337,7 +452,9 @@ export default function Home() {
                           <span className="font-black text-slate-800 text-lg leading-tight">{lead.name || 'Unknown'}</span>
                           <span className="font-mono text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded border border-slate-200 whitespace-nowrap">{lead.source}</span>
                         </div>
-                        <span className="text-slate-600 font-medium text-sm line-clamp-3 leading-relaxed">{lead.requirement || <span className="italic text-slate-400">No requirement listed</span>}</span>
+                        <span className="text-slate-600 font-medium text-sm line-clamp-3 leading-relaxed">
+                          {lead.requirement || <span className="italic text-slate-400">No requirement listed</span>}
+                        </span>
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                           <span className="text-blue-700 font-bold tabular-nums text-sm">{lead.phone || '—'}</span>
                           <span className="text-slate-400 font-bold tabular-nums text-xs">{lead.date}</span>
@@ -345,7 +462,9 @@ export default function Home() {
                       </div>
                     ))}
                     {exportData[col.id].length === 0 && (
-                      <div className="flex-1 flex items-center justify-center text-slate-400 font-bold text-sm uppercase tracking-widest opacity-50 border-2 border-dashed border-slate-200 rounded-xl m-2">Drop Leads Here</div>
+                      <div className="flex-1 flex items-center justify-center text-slate-400 font-bold text-sm uppercase tracking-widest opacity-50 border-2 border-dashed border-slate-200 rounded-xl m-2">
+                        Drop Leads Here
+                      </div>
                     )}
                   </div>
                 </div>
