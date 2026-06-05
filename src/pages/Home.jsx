@@ -70,6 +70,9 @@ export default function Home() {
     } catch (err) { console.error("Error fetching calendar data:", err.message); }
   };
 
+  // Helper sleep function
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   // ── STEP 1: FETCH RAW LEADS (FAST) THEN STREAM CLASSIFICATION ──────────────────────
   const handleInitiateExport = async (forceRefetch = false) => {
     if (isFetchingAI || isUploading) return;
@@ -119,40 +122,73 @@ export default function Home() {
       setProgress({ current: 0, total: allRawLeads.length });
       setIsReviewModalOpen(true);   // show modal immediately
 
-      // 2) Stream‑classify each lead one by one
+      // 2) Stream‑classify each lead one by one WITH THROTTLING
+      const DELAY_MS = 5000;          // 5 seconds between requests – respects Groq rate limit
+      const MAX_RETRIES = 3;
+
       for (let i = 0; i < allRawLeads.length; i++) {
         const lead = allRawLeads[i];
-        try {
-          const classifyRes = await fetch('https://python-backend-tdjw.onrender.com/api/classify-single', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requirement: lead.requirement, lead }),
-          });
-          const result = await classifyRes.json();
-          const category = result.category || 'Unclassified';
+        let classified = false;
+        let retries = 0;
 
-          // Generate stable frontend_id if not present
-          if (!lead.frontend_id) {
-            lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
-          }
+        while (!classified && retries <= MAX_RETRIES) {
+          try {
+            const classifyRes = await fetch('https://python-backend-tdjw.onrender.com/api/classify-single', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ requirement: lead.requirement, lead }),
+            });
 
-          // Append to the appropriate column
-          setExportData(prev => {
-            const updated = { ...prev };
-            const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
-            updated[target] = [...prev[target], lead];
-            return updated;
-          });
-        } catch (err) {
-          // classification failed – put in unclassified
-          if (!lead.frontend_id) {
-            lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
+            if (classifyRes.status === 429) {
+              // Rate limit hit – wait and retry
+              retries++;
+              const retryAfter = classifyRes.headers.get('Retry-After');
+              const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : DELAY_MS * 2;
+              console.warn(`Rate limited for lead "${lead.name}". Waiting ${waitTime}ms (retry ${retries}/${MAX_RETRIES})`);
+              await sleep(waitTime);
+              continue;
+            }
+
+            const result = await classifyRes.json();
+            const category = result.category || 'Unclassified';
+
+            // Generate stable frontend_id if not present
+            if (!lead.frontend_id) {
+              lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
+            }
+
+            // Append to the appropriate column
+            setExportData(prev => {
+              const updated = { ...prev };
+              const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
+              updated[target] = [...prev[target], lead];
+              return updated;
+            });
+            classified = true;
+          } catch (err) {
+            // Network or other error – treat as failure
+            if (retries >= MAX_RETRIES) {
+              console.warn(`Classification failed after ${MAX_RETRIES} retries for lead: ${lead.name}`, err);
+              if (!lead.frontend_id) {
+                lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
+              }
+              setExportData(prev => ({
+                ...prev,
+                unclassified: [...prev.unclassified, lead],
+              }));
+              classified = true; // stop retrying
+            } else {
+              retries++;
+              await sleep(DELAY_MS);
+            }
           }
-          setExportData(prev => ({
-            ...prev,
-            unclassified: [...prev.unclassified, lead],
-          }));
         }
+
+        // Always wait between leads (except after the last one)
+        if (i < allRawLeads.length - 1) {
+          await sleep(DELAY_MS);
+        }
+
         setProgress({ current: i + 1, total: allRawLeads.length });
       }
 
