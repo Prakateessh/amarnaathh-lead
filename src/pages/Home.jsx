@@ -46,6 +46,8 @@ export default function Home() {
   const [exportMsg, setExportMsg] = useState('');
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  
+  // 🚨 State back to exactly 3 columns
   const [exportData, setExportData] = useState({ user1: [], user2: [], unclassified: [], date_range: '' });
   const [draggedItem, setDraggedItem] = useState(null);
 
@@ -108,22 +110,22 @@ export default function Home() {
         setIsFetchingAI(false);
         return;
       }
-      if (!data.leads || data.leads.length === 0) {
+      if (!data.unclassified || data.unclassified.length === 0) {
         setExportMsg('⚠️ No new leads found for Yesterday and Today.');
         setIsFetchingAI(false);
         return;
       }
 
-      const allRawLeads = data.leads;
+      const allRawLeads = data.unclassified;
       const dateRange = data.date_range || '';
 
-      // Initialise empty columns
+      // Initialise empty 3 columns
       setExportData({ user1: [], user2: [], unclassified: [], date_range: dateRange });
       setProgress({ current: 0, total: allRawLeads.length });
       setIsReviewModalOpen(true);   // show modal immediately
 
       // 2) Stream‑classify each lead one by one WITH THROTTLING
-      const DELAY_MS = 5000;          // 5 seconds between requests – respects Groq rate limit
+      const DELAY_MS = 5000;         // 5 seconds between requests – respects Groq rate limit
       const MAX_RETRIES = 3;
 
       for (let i = 0; i < allRawLeads.length; i++) {
@@ -140,7 +142,6 @@ export default function Home() {
             });
 
             if (classifyRes.status === 429) {
-              // Rate limit hit – wait and retry
               retries++;
               const retryAfter = classifyRes.headers.get('Retry-After');
               const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : DELAY_MS * 2;
@@ -157,16 +158,18 @@ export default function Home() {
               lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
             }
 
-            // Append to the appropriate column
+            // 🚨 Strict 3 column mapping. If Groq returns BDE, push it to unclassified.
+            let targetCol = 'unclassified';
+            if (category === 'User 1') targetCol = 'user1';
+            else if (category === 'User 2') targetCol = 'user2';
+
             setExportData(prev => {
               const updated = { ...prev };
-              const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
-              updated[target] = [...prev[target], lead];
+              updated[targetCol] = [...prev[targetCol], { ...result.lead, frontend_id: lead.frontend_id }];
               return updated;
             });
             classified = true;
           } catch (err) {
-            // Network or other error – treat as failure
             if (retries >= MAX_RETRIES) {
               console.warn(`Classification failed after ${MAX_RETRIES} retries for lead: ${lead.name}`, err);
               if (!lead.frontend_id) {
@@ -203,6 +206,15 @@ export default function Home() {
     } finally {
       setIsFetchingAI(false);
     }
+  };
+
+  // --- DELETE LEAD ---
+  const handleDeleteLead = (frontendId, colName) => {
+    setExportData(prev => {
+      const updated = { ...prev, [colName]: prev[colName].filter(lead => lead.frontend_id !== frontendId) };
+      sessionStorage.setItem('cachedExportData', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // ── STEP 2: CONFIRM & UPLOAD TO DRIVE ─────────────────────────────────────
@@ -447,11 +459,19 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-200 h-1.5">
+                <div 
+                  className="bg-emerald-500 h-1.5 transition-all duration-300" 
+                  style={{width: progress.total > 0 ? `${(progress.current/progress.total)*100}%` : '0%'}}
+                ></div>
+            </div>
+
             {/* Three Columns Grid */}
             <div className="flex flex-1 overflow-hidden p-6 gap-6 bg-slate-100/50">
               {[
-                { id: 'user1', title: 'Ritthik Kumar', color: 'blue' },
-                { id: 'user2', title: 'BDE', color: 'purple' },
+                { id: 'user1', title: 'USER 1', color: 'blue' },
+                { id: 'user2', title: 'USER 2', color: 'purple' },
                 { id: 'unclassified', title: 'UNCLASSIFIED', color: 'rose' }
               ].map(col => (
                 <div
@@ -478,9 +498,20 @@ export default function Home() {
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead, col.id)}
                         onDragEnd={handleDragEnd}
-                        className={`cursor-grab active:cursor-grabbing bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:border-${col.color}-400 hover:shadow-md transition-all flex flex-col gap-2`}
+                        className={`group relative cursor-grab active:cursor-grabbing bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:border-${col.color}-400 hover:shadow-md transition-all flex flex-col gap-2`}
                       >
-                        <div className="flex justify-between items-start gap-2">
+                        {/* 🗑️ Delete Button */}
+                        <button 
+                          onClick={() => handleDeleteLead(lead.frontend_id, col.id)}
+                          className="absolute top-3 right-3 text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete Lead"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+
+                        <div className="flex justify-between items-start gap-2 pr-8">
                           <span className="font-black text-slate-800 text-lg leading-tight">{lead.name || 'Unknown'}</span>
                           <span className="font-mono text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded border border-slate-200 whitespace-nowrap">{lead.source}</span>
                         </div>
@@ -489,7 +520,16 @@ export default function Home() {
                         </span>
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                           <span className="text-blue-700 font-bold tabular-nums text-sm">{lead.phone || '—'}</span>
-                          <span className="text-slate-400 font-bold tabular-nums text-xs">{lead.date}</span>
+                          
+                          <div className="flex items-center gap-2">
+                             {/* 🏷️ Machine Code Badge */}
+                             {lead.code && lead.code !== "Unknown" && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Code: {lead.code}
+                              </span>
+                            )}
+                            <span className="text-slate-400 font-bold tabular-nums text-xs">{lead.date}</span>
+                          </div>
                         </div>
                       </div>
                     ))}
