@@ -62,7 +62,7 @@ export default function Home() {
 
   useEffect(() => { fetchCalendarData(); }, []);
 
- const fetchCalendarData = async () => {
+  const fetchCalendarData = async () => {
     try {
       const { data, error } = await supabase.from('leads').select('id, name, tentative_call_date, gmeet_date, call_attended, gmeet_attended, direct_visit_date, direct_visit_attended');
       if (error) throw error;
@@ -95,8 +95,8 @@ export default function Home() {
     setProgress({ current: 0, total: 0 });
 
     try {
-      // 1) Fetch raw leads from backend (no classification)
-      const res = await fetch('https://python-backend-tdjw.onrender.com/api/drive/fetch-and-classify', {
+      // 1) Fetch raw leads from backend (Pointing to Localhost for Ollama)
+      const res = await fetch('http://localhost:8000/api/drive/fetch-and-classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ indiamart_cookie: formattedCookie }),
@@ -122,8 +122,8 @@ export default function Home() {
       setProgress({ current: 0, total: allRawLeads.length });
       setIsReviewModalOpen(true);   // show modal immediately
 
-      // 2) Stream‑classify each lead one by one WITH THROTTLING
-      const DELAY_MS = 5000;          // 5 seconds between requests – respects Groq rate limit
+      // 2) Stream‑classify each lead one by one
+      const DELAY_MS = 0; // 0 seconds because Ollama has no rate limits!
       const MAX_RETRIES = 3;
 
       for (let i = 0; i < allRawLeads.length; i++) {
@@ -133,7 +133,7 @@ export default function Home() {
 
         while (!classified && retries <= MAX_RETRIES) {
           try {
-            const classifyRes = await fetch('https://python-backend-tdjw.onrender.com/api/classify-single', {
+            const classifyRes = await fetch('http://localhost:8000/api/classify-single', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ requirement: lead.requirement, lead }),
@@ -143,7 +143,7 @@ export default function Home() {
               // Rate limit hit – wait and retry
               retries++;
               const retryAfter = classifyRes.headers.get('Retry-After');
-              const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : DELAY_MS * 2;
+              const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000;
               console.warn(`Rate limited for lead "${lead.name}". Waiting ${waitTime}ms (retry ${retries}/${MAX_RETRIES})`);
               await sleep(waitTime);
               continue;
@@ -179,13 +179,13 @@ export default function Home() {
               classified = true; // stop retrying
             } else {
               retries++;
-              await sleep(DELAY_MS);
+              await sleep(1000);
             }
           }
         }
 
         // Always wait between leads (except after the last one)
-        if (i < allRawLeads.length - 1) {
+        if (i < allRawLeads.length - 1 && DELAY_MS > 0) {
           await sleep(DELAY_MS);
         }
 
@@ -209,7 +209,7 @@ export default function Home() {
   const handleConfirmUpload = async () => {
     setIsUploading(true);
     try {
-      const res = await fetch('https://python-backend-tdjw.onrender.com/api/drive/upload', {
+      const res = await fetch('http://localhost:8000/api/drive/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(exportData),
@@ -268,6 +268,7 @@ export default function Home() {
       const gDate = String(lead.gmeet_date).split('T')[0];
       const isUp = gDate > todayStr;
       (isUp ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'GMeet', alertDate: gDate });
+    } // FIXED: Missing bracket was right here!
 
     if (lead.direct_visit_date && !lead.direct_visit_attended) {
       const vDate = String(lead.direct_visit_date).split('T')[0];
@@ -284,7 +285,7 @@ export default function Home() {
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
   const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
-const handleMarkAttended = async (leadId, alertType) => {
+  const handleMarkAttended = async (leadId, alertType) => {
     const col = alertType === 'Call' ? 'call_attended' : alertType === 'GMeet' ? 'gmeet_attended' : 'direct_visit_attended';
     try {
       setCalendarLeads(prev => prev.map(l => l.id === leadId ? { ...l, [col]: true } : l));
@@ -511,7 +512,7 @@ const handleMarkAttended = async (leadId, alertType) => {
         </div>
       )}
 
-      {/* ── REMINDERS & CALENDAR MODAL (Unchanged) ── */}
+      {/* ── REMINDERS & CALENDAR MODAL ── */}
       {showReminders && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 p-10 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-8">
@@ -527,7 +528,7 @@ const handleMarkAttended = async (leadId, alertType) => {
                     {currentTodayAlerts.map((a, i) => (
                       <div key={i} className="bg-white border border-rose-300 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
                         <div>
-                          <div className="flex items-center gap-3 mb-3"><span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${a.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>{a.alertType}</span><span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">{formatDisplayDate(a.alertDate)}</span></div>
+                          <div className="flex items-center gap-3 mb-3"><span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${a.alertType === 'Call' ? 'bg-blue-600 text-white' : a.alertType === 'GMeet' ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'}`}>{a.alertType}</span><span className="text-rose-800 font-mono font-bold text-sm bg-rose-100 border border-rose-300 px-4 py-1.5 rounded-lg">{formatDisplayDate(a.alertDate)}</span></div>
                           <p className="text-slate-900 font-black text-xl truncate">{a.name}</p>
                         </div>
                         <div className="flex gap-4 w-full mt-3"><button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">Dismiss</button><button onClick={() => handleMarkAttended(a.id, a.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">✓ Attended</button></div>
@@ -544,7 +545,7 @@ const handleMarkAttended = async (leadId, alertType) => {
                     {currentUpcomingAlerts.map((a, i) => (
                       <div key={i} className="bg-white border border-slate-200 p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-md">
                         <div>
-                          <div className="flex items-center gap-3 mb-3"><span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${a.alertType === 'Call' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`}>{a.alertType}</span><span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">{formatDisplayDate(a.alertDate)}</span></div>
+                          <div className="flex items-center gap-3 mb-3"><span className={`px-4 py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest shadow-sm ${a.alertType === 'Call' ? 'bg-blue-600 text-white' : a.alertType === 'GMeet' ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'}`}>{a.alertType}</span><span className="text-slate-700 font-mono font-bold text-sm bg-slate-100 border border-slate-300 px-4 py-1.5 rounded-lg">{formatDisplayDate(a.alertDate)}</span></div>
                           <p className="text-slate-900 font-black text-xl truncate">{a.name}</p>
                         </div>
                         <div className="flex gap-4 w-full mt-3"><button onClick={() => setShowReminders(false)} className="flex-1 bg-slate-100 hover:bg-[#EBA7FF]/20 border border-slate-300 text-slate-700 hover:text-purple-900 font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-sm">Dismiss</button><button onClick={() => handleMarkAttended(a.id, a.alertType)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-colors shadow-md">✓ Attended</button></div>
@@ -572,7 +573,7 @@ const handleMarkAttended = async (leadId, alertType) => {
                   const isToday = dateString === todayStr;
                   const dayCalls = calendarLeads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
                   const dayMeets = calendarLeads.filter(l => { const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null; return gDate === dateString && !l.gmeet_attended; });
-                  const dayVisits = calendarLeads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; }); // ADDED
+                  const dayVisits = calendarLeads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; });
 
                   return (
                     <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
