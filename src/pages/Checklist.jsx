@@ -197,7 +197,7 @@ export default function Checklist() {
 
       <div className="w-full max-w-7xl relative z-10 mb-8 flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/home')} className="p-3 bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-purple-900 rounded-xl transition-colors">
+          <button onClick={() => navigate('/leadmanager')} className="p-3 bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-purple-900 rounded-xl transition-colors">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           </button>
           <div>
