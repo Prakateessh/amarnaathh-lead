@@ -146,6 +146,11 @@ export default function LeadManager() {
       const gDate = String(lead.gmeet_date).split('T')[0];
       const isUpcoming = gDate > todayStr;
       (isUpcoming ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'GMeet', alertDate: gDate });
+    
+    if (lead.direct_visit_date && !lead.direct_visit_attended) {
+      const vDate = String(lead.direct_visit_date).split('T')[0];
+      const isUpcoming = vDate > todayStr;
+      (isUpcoming ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'Visit', alertDate: vDate });  
     }
   });
 
@@ -158,8 +163,8 @@ export default function LeadManager() {
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
   const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
-  const handleMarkAttended = async (leadId, alertType) => {
-    const columnToUpdate = alertType === 'Call' ? 'call_attended' : 'gmeet_attended';
+const handleMarkAttended = async (leadId, alertType) => {
+    const columnToUpdate = alertType === 'Call' ? 'call_attended' : alertType === 'GMeet' ? 'gmeet_attended' : 'direct_visit_attended';
     try {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, [columnToUpdate]: true } : l));
       await supabase.from('leads').update({ [columnToUpdate]: true }).eq('id', leadId);
@@ -228,6 +233,7 @@ export default function LeadManager() {
         price:               editData.price          || null,
         tentative_call_date: editData.tentative_call_date || null,
         gmeet_date:          editData.gmeet_date     || null,
+        direct_visit_date:   editData.direct_visit_date || null,
       };
 
       const { error } = await supabase.from('leads').update(payload).eq('id', editData.id);
@@ -369,7 +375,7 @@ export default function LeadManager() {
       'Date': formatDisplayDate(l.date), 'Source': l.source || '', 'Client Name': l.name || '',
       'Company': l.company_name || '', 'Phone': l.phone || '', 'Location': l.location || '',
       'Requirement': l.requirement || '', 'Tentative Call': formatDisplayDate(l.tentative_call_date),
-      'GMeet Date': formatDisplayDate(l.gmeet_date), 'Pipeline Stage': l.status || 'New',
+      'GMeet Date': formatDisplayDate(l.gmeet_date), 'Visit Date': formatDisplayDate(l.direct_visit_date), 'Pipeline Stage': l.status || 'New',
       'Temperature': l.lead_temp || 'Cold', 'Value (₹)': Number(l.price) || 0,
       'Lost Reason': l.lost_reason || '', 'Internal Notes': l.notes || '',
     }));
@@ -485,6 +491,7 @@ export default function LeadManager() {
                     { label: 'Lead Date',      field: 'date' },
                     { label: 'Tentative Call', field: 'tentative_call_date' },
                     { label: 'GMeet Date',     field: 'gmeet_date' },
+                    { label: 'Direct Visit',   field: 'direct_visit_date' },
                   ].map(({ label, field }) => (
                     <div key={field} className="flex flex-col gap-2.5">
                       <label className="font-bold text-sm text-slate-500 uppercase tracking-widest">{label}</label>
@@ -734,6 +741,7 @@ export default function LeadManager() {
                   const isToday = dateString === todayStr;
                   const dayCalls = leads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
                   const dayMeets = leads.filter(l => { const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null; return gDate === dateString && !l.gmeet_attended; });
+                  const dayVisits = leads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; }); // ADDED
 
                   return (
                     <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
@@ -741,6 +749,7 @@ export default function LeadManager() {
                       <div className="flex flex-col gap-2 w-full overflow-hidden">
                         {dayCalls.length > 0 && <div className="text-sm bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>📞 {dayCalls.length} Call(s)</div>}
                         {dayMeets.length > 0 && <div className="text-sm bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>📹 {dayMeets.length} Meet(s)</div>}
+                        {dayVisits.length > 0 && <div className="text-sm bg-rose-100 text-rose-900 border border-rose-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Visits: ${dayVisits.map(l=>l.name).join(', ')}`}>📍 {dayVisits.length} Visit(s)</div>}
                       </div>
                     </div>
                   );
@@ -749,6 +758,7 @@ export default function LeadManager() {
               <div className="flex gap-8 mt-10 justify-center">
                 <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm"></span> Call Scheduled</span>
                 <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-purple-100 border-2 border-purple-400 shadow-sm"></span> GMeet Scheduled</span>
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-rose-100 border-2 border-rose-400 shadow-sm"></span> Visit Scheduled</span>
               </div>
             </div>
           </div>
@@ -906,7 +916,7 @@ export default function LeadManager() {
                     <th className="py-6 px-5 text-center w-48"><span className="flex items-center justify-center">Stage <SortBtn col="status" /></span></th>
                     <th className="py-6 px-5 text-center w-36"><span className="flex items-center justify-center">Temp <SortBtn col="lead_temp" /></span></th>
                     <th className="py-6 px-5 text-right w-44"><span className="flex items-center justify-end">Value (₹) <SortBtn col="price" /></span></th>
-                    <th className="py-6 px-5 text-center w-48">Call / Meet</th>
+                    <th className="py-6 px-5 text-center w-48">Call / Meet / Visit</th>
                     <th className="py-6 px-5 w-40"><span className="flex items-center">Date <SortBtn col="date" /></span></th>
                     <th className="py-6 px-5 w-40">Source</th>
                   </tr>
@@ -945,11 +955,12 @@ export default function LeadManager() {
                         </td>
                         <td className="py-6 px-5 text-center"><TempBadge temp={lead.lead_temp} /></td>
                         <td className="py-6 px-5 text-right"><span className="text-emerald-600 font-mono text-xl font-black tabular-nums">{lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-lg">—</span>}</span></td>
-                        <td className="py-6 px-5 text-center">
+                      <td className="py-6 px-5 text-center">
                           <div className="flex flex-col gap-2 items-start bg-slate-100 group-hover:bg-white p-3.5 rounded-xl border border-slate-200 w-fit mx-auto min-w-[150px] transition-colors shadow-sm">
                             {lead.tentative_call_date && <span className="tabular-nums text-sm text-blue-800 font-bold flex items-center gap-2">📞 {formatDisplayDate(lead.tentative_call_date)}</span>}
                             {lead.gmeet_date && <span className="tabular-nums text-sm text-purple-800 font-bold flex items-center gap-2">📹 {formatDisplayDate(lead.gmeet_date)}</span>}
-                            {!lead.tentative_call_date && !lead.gmeet_date && <span className="text-slate-400 font-medium text-sm mx-auto py-1 italic">Unscheduled</span>}
+                            {lead.direct_visit_date && <span className="tabular-nums text-sm text-rose-800 font-bold flex items-center gap-2">📍 {formatDisplayDate(lead.direct_visit_date)}</span>}
+                            {!lead.tentative_call_date && !lead.gmeet_date && !lead.direct_visit_date && <span className="text-slate-400 font-medium text-sm mx-auto py-1 italic">Unscheduled</span>}
                           </div>
                         </td>
                         <td className="py-6 px-5"><span className="text-slate-700 tabular-nums font-bold text-base whitespace-nowrap">{formatDisplayDate(lead.date)}</span></td>
