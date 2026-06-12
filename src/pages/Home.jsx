@@ -62,9 +62,9 @@ export default function Home() {
 
   useEffect(() => { fetchCalendarData(); }, []);
 
-  const fetchCalendarData = async () => {
+ const fetchCalendarData = async () => {
     try {
-      const { data, error } = await supabase.from('leads').select('id, name, tentative_call_date, gmeet_date, call_attended, gmeet_attended');
+      const { data, error } = await supabase.from('leads').select('id, name, tentative_call_date, gmeet_date, call_attended, gmeet_attended, direct_visit_date, direct_visit_attended');
       if (error) throw error;
       setCalendarLeads(data || []);
     } catch (err) { console.error("Error fetching calendar data:", err.message); }
@@ -268,6 +268,11 @@ export default function Home() {
       const gDate = String(lead.gmeet_date).split('T')[0];
       const isUp = gDate > todayStr;
       (isUp ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'GMeet', alertDate: gDate });
+
+    if (lead.direct_visit_date && !lead.direct_visit_attended) {
+      const vDate = String(lead.direct_visit_date).split('T')[0];
+      const isUp = vDate > todayStr;
+      (isUp ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'Visit', alertDate: vDate });
     }
   });
 
@@ -279,8 +284,8 @@ export default function Home() {
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
   const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
-  const handleMarkAttended = async (leadId, alertType) => {
-    const col = alertType === 'Call' ? 'call_attended' : 'gmeet_attended';
+const handleMarkAttended = async (leadId, alertType) => {
+    const col = alertType === 'Call' ? 'call_attended' : alertType === 'GMeet' ? 'gmeet_attended' : 'direct_visit_attended';
     try {
       setCalendarLeads(prev => prev.map(l => l.id === leadId ? { ...l, [col]: true } : l));
       await supabase.from('leads').update({ [col]: true }).eq('id', leadId);
@@ -567,12 +572,15 @@ export default function Home() {
                   const isToday = dateString === todayStr;
                   const dayCalls = calendarLeads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
                   const dayMeets = calendarLeads.filter(l => { const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null; return gDate === dateString && !l.gmeet_attended; });
+                  const dayVisits = calendarLeads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; }); // ADDED
+
                   return (
                     <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
                       <span className={`font-mono text-lg ${isToday ? 'text-purple-900 font-black' : 'text-slate-600 font-bold'}`}>{day}</span>
                       <div className="flex flex-col gap-2 w-full overflow-hidden">
                         {dayCalls.length > 0 && <div className="text-sm bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Calls: ${dayCalls.map(l=>l.name).join(', ')}`}>📞 {dayCalls.length} Call(s)</div>}
                         {dayMeets.length > 0 && <div className="text-sm bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`GMeets: ${dayMeets.map(l=>l.name).join(', ')}`}>📹 {dayMeets.length} Meet(s)</div>}
+                        {dayVisits.length > 0 && <div className="text-sm bg-rose-100 text-rose-900 border border-rose-300 px-3 py-1.5 rounded-lg truncate font-bold shadow-sm" title={`Visits: ${dayVisits.map(l=>l.name).join(', ')}`}>📍 {dayVisits.length} Visit(s)</div>}
                       </div>
                     </div>
                   );
@@ -581,6 +589,7 @@ export default function Home() {
               <div className="flex gap-8 mt-10 justify-center">
                 <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-blue-100 border-2 border-blue-400 shadow-sm"></span> Call Scheduled</span>
                 <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-purple-100 border-2 border-purple-400 shadow-sm"></span> GMeet Scheduled</span>
+                <span className="flex items-center gap-3 font-bold text-sm text-slate-600"><span className="w-5 h-5 rounded-full bg-rose-100 border-2 border-rose-400 shadow-sm"></span> Visit Scheduled</span>
               </div>
             </div>
           </div>
