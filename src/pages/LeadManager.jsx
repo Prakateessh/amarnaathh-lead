@@ -142,11 +142,12 @@ export default function LeadManager() {
       const isUpcoming = String(lead.tentative_call_date) > todayStr;
       (isUpcoming ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'Call', alertDate: lead.tentative_call_date });
     }
+    // Fixed missing bracket here!
     if (lead.gmeet_date && !lead.gmeet_attended) {
       const gDate = String(lead.gmeet_date).split('T')[0];
       const isUpcoming = gDate > todayStr;
       (isUpcoming ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'GMeet', alertDate: gDate });
-    
+    }
     if (lead.direct_visit_date && !lead.direct_visit_attended) {
       const vDate = String(lead.direct_visit_date).split('T')[0];
       const isUpcoming = vDate > todayStr;
@@ -163,7 +164,7 @@ export default function LeadManager() {
   const currentTodayAlerts = todayAlerts.slice((todayPage - 1) * ITEMS_PER_PAGE, todayPage * ITEMS_PER_PAGE);
   const currentUpcomingAlerts = upcomingAlerts.slice((upcomingPage - 1) * ITEMS_PER_PAGE, upcomingPage * ITEMS_PER_PAGE);
 
-const handleMarkAttended = async (leadId, alertType) => {
+  const handleMarkAttended = async (leadId, alertType) => {
     const columnToUpdate = alertType === 'Call' ? 'call_attended' : alertType === 'GMeet' ? 'gmeet_attended' : 'direct_visit_attended';
     try {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, [columnToUpdate]: true } : l));
@@ -220,19 +221,19 @@ const handleMarkAttended = async (leadId, alertType) => {
     setIsSaving(true);
     try {
       const payload = {
-        name:                editData.name           || null,
-        company_name:        editData.company_name   || null,
-        phone:               editData.phone          || null,
-        location:            editData.location       || null,
-        requirement:         editData.requirement    || null,
-        source:              editData.source         || null,
-        date:                editData.date           || null,
-        status:              editData.status         || 'New',
+        name:                editData.name            || null,
+        company_name:        editData.company_name    || null,
+        phone:               editData.phone           || null,
+        location:            editData.location        || null,
+        requirement:         editData.requirement     || null,
+        source:              editData.source          || null,
+        date:                editData.date            || null,
+        status:              editData.status          || 'New',
         lost_reason:         editData.status === 'Closed - Lost' ? (editData.lost_reason || null) : null,
-        lead_temp:           editData.lead_temp      || 'Cold',
-        price:               editData.price          || null,
+        lead_temp:           editData.lead_temp       || 'Cold',
+        price:               editData.price           || null,
         tentative_call_date: editData.tentative_call_date || null,
-        gmeet_date:          editData.gmeet_date     || null,
+        gmeet_date:          editData.gmeet_date      || null,
         direct_visit_date:   editData.direct_visit_date || null,
       };
 
@@ -486,7 +487,7 @@ const handleMarkAttended = async (leadId, alertType) => {
 
               <section>
                 <p className="font-black text-xl text-slate-800 mb-5 border-b border-slate-200 pb-3">Schedule</p>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-4 gap-6">
                   {[
                     { label: 'Lead Date',      field: 'date' },
                     { label: 'Tentative Call', field: 'tentative_call_date' },
@@ -741,7 +742,7 @@ const handleMarkAttended = async (leadId, alertType) => {
                   const isToday = dateString === todayStr;
                   const dayCalls = leads.filter(l => l.tentative_call_date === dateString && !l.call_attended);
                   const dayMeets = leads.filter(l => { const gDate = l.gmeet_date ? String(l.gmeet_date).split('T')[0] : null; return gDate === dateString && !l.gmeet_attended; });
-                  const dayVisits = leads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; }); // ADDED
+                  const dayVisits = leads.filter(l => { const vDate = l.direct_visit_date ? String(l.direct_visit_date).split('T')[0] : null; return vDate === dateString && !l.direct_visit_attended; });
 
                   return (
                     <div key={day} className={`min-h-[120px] p-4 border rounded-2xl flex flex-col items-start gap-2.5 transition-colors ${isToday ? 'border-purple-400 bg-purple-50 shadow-md ring-4 ring-purple-100' : 'border-slate-200 bg-white hover:bg-slate-50 shadow-sm'}`}>
@@ -809,8 +810,6 @@ const handleMarkAttended = async (leadId, alertType) => {
             <button onClick={fetchLeads} className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm uppercase tracking-widest px-8 py-4 rounded-xl transition-colors border border-slate-300 shadow-sm">Refresh</button>
           </div>
         </div>
-
-
 
         <div className="px-10 pb-6 flex flex-col gap-4">
           <div className="flex gap-5 items-center">
@@ -955,7 +954,7 @@ const handleMarkAttended = async (leadId, alertType) => {
                         </td>
                         <td className="py-6 px-5 text-center"><TempBadge temp={lead.lead_temp} /></td>
                         <td className="py-6 px-5 text-right"><span className="text-emerald-600 font-mono text-xl font-black tabular-nums">{lead.price ? `₹${Number(lead.price).toLocaleString('en-IN')}` : <span className="text-slate-300 font-sans text-lg">—</span>}</span></td>
-                      <td className="py-6 px-5 text-center">
+                        <td className="py-6 px-5 text-center">
                           <div className="flex flex-col gap-2 items-start bg-slate-100 group-hover:bg-white p-3.5 rounded-xl border border-slate-200 w-fit mx-auto min-w-[150px] transition-colors shadow-sm">
                             {lead.tentative_call_date && <span className="tabular-nums text-sm text-blue-800 font-bold flex items-center gap-2">📞 {formatDisplayDate(lead.tentative_call_date)}</span>}
                             {lead.gmeet_date && <span className="tabular-nums text-sm text-purple-800 font-bold flex items-center gap-2">📹 {formatDisplayDate(lead.gmeet_date)}</span>}
