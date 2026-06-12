@@ -792,6 +792,10 @@ export default function LeadManager() {
             <button onClick={handleDownloadExcel} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 hover:text-purple-900 font-black text-sm tracking-widest uppercase px-8 py-4 rounded-xl transition-colors flex items-center gap-3 shadow-sm">
               <svg className="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Export{processedLeads.length !== leads.length ? ` (${processedLeads.length})` : ''}
             </button>
+            <button onClick={() => navigate('/checklist')} className="flex items-center gap-2 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 hover:text-purple-900 hover:border-purple-300 px-4 py-2.5 rounded-xl font-bold tracking-wide transition-all shadow-sm">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /> </svg>
+              Checklist
+            </button>
             <button onClick={fetchLeads} className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm uppercase tracking-widest px-8 py-4 rounded-xl transition-colors border border-slate-300 shadow-sm">Refresh</button>
           </div>
         </div>
