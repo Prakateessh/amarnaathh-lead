@@ -7,6 +7,7 @@ import IndiaMart from './pages/IndiaMart';
 import TradeIndia from './pages/TradeIndia'; 
 import DetailedAnalytics from './pages/DetailedAnalytics';
 import LeadManager from './pages/LeadManager';
+import Checklist from './pages/Checklist';
 
 // 🛑 THE GATEKEEPER
 // Checks if the browser has the login key. If not, kicks them to Login.
@@ -35,6 +36,7 @@ function App() {
         <Route path="/indiamart" element={<ProtectedRoute><IndiaMart /></ProtectedRoute>} />
         <Route path="/tradeindia" element={<ProtectedRoute><TradeIndia /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><DetailedAnalytics /></ProtectedRoute>} />
+        <Route path="/checklist" element={<ProtectedRoute><Checklist /></ProtectedRoute>} />
 
         {/* Catch-all route: Send unknown URLs back to login */}
         <Route path="*" element={<Navigate to="/" replace />} />
