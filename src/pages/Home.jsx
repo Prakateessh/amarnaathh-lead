@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 import indiamartLogo from '../assets/icons/indiamart.png';
 import tradeindiaLogo from '../assets/icons/tradeindia.png';
 
+// ═══════════════════════════════════════════════════════════════
+// CONFIG – change this to your actual deployed backend URL
+// ═══════════════════════════════════════════════════════════════
+const API_BASE = 'https://python-backend-tdjw.onrender.com';
+
+// ── DATE FORMATTER ──────────────────────────────────────────────
 const formatDisplayDate = (dateStr) => {
   if (!dateStr) return '—';
   const parts = dateStr.split('T')[0].split('-');
@@ -15,7 +21,7 @@ const formatDisplayDate = (dateStr) => {
   return dateStr;
 };
 
-// ── HELPER: Format IndiaMart Cookie properly ────────────────────────────────
+// ── HELPER: Format IndiaMart Cookie properly ────────────────────
 const normalizeCookie = (raw) => {
   if (!raw) return '';
   if (raw.includes(':') && (raw.includes("'") || raw.includes('"'))) {
@@ -33,6 +39,7 @@ const normalizeCookie = (raw) => {
   return raw.trim();
 };
 
+// ═══════════════════════════════════════════════════════════════
 export default function Home() {
   const navigate = useNavigate();
 
@@ -51,6 +58,9 @@ export default function Home() {
 
   // 🧵 Streaming progress
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  // 🛑 STOP CLASSIFICATION FLAG
+  const stopRef = useRef(false);
 
   // 📅 REMINDERS & CALENDAR STATE
   const [showReminders, setShowReminders] = useState(false);
@@ -73,7 +83,7 @@ export default function Home() {
   // Helper sleep function
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // ── STEP 1: FETCH RAW LEADS (FAST) THEN STREAM CLASSIFICATION ──────────────────────
+  // ── STEP 1: FETCH RAW LEADS & STREAM CLASSIFICATION ──────────
   const handleInitiateExport = async (forceRefetch = false) => {
     if (isFetchingAI || isUploading) return;
 
@@ -90,13 +100,14 @@ export default function Home() {
     const rawCookie = localStorage.getItem('im_cookie') || '';
     const formattedCookie = normalizeCookie(rawCookie);
 
+    stopRef.current = false;          // reset stop flag
     setIsFetchingAI(true);
     setExportMsg('');
     setProgress({ current: 0, total: 0 });
 
     try {
-      // 1) Fetch raw leads from backend (Pointing to Localhost for Ollama)
-      const res = await fetch('http://localhost:8000/api/drive/fetch-and-classify', {
+      // 1) Fetch raw leads from backend
+      const res = await fetch(`${API_BASE}/api/drive/fetch-and-classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ indiamart_cookie: formattedCookie }),
@@ -117,23 +128,31 @@ export default function Home() {
       const allRawLeads = data.leads;
       const dateRange = data.date_range || '';
 
-      // Initialise empty columns
+      // Initialize empty columns
       setExportData({ user1: [], user2: [], unclassified: [], date_range: dateRange });
       setProgress({ current: 0, total: allRawLeads.length });
       setIsReviewModalOpen(true);   // show modal immediately
 
       // 2) Stream‑classify each lead one by one
-      const DELAY_MS = 0; // 0 seconds because Ollama has no rate limits!
+      const DELAY_MS = 100;        // small delay to avoid rate limits on Groq
       const MAX_RETRIES = 3;
 
       for (let i = 0; i < allRawLeads.length; i++) {
+        // --- Check for stop signal ---
+        if (stopRef.current) {
+          console.log('🛑 Classification stopped by user');
+          break;
+        }
+
         const lead = allRawLeads[i];
         let classified = false;
         let retries = 0;
 
         while (!classified && retries <= MAX_RETRIES) {
+          if (stopRef.current) break;   // also check inside retry loop
+
           try {
-            const classifyRes = await fetch('http://localhost:8000/api/classify-single', {
+            const classifyRes = await fetch(`${API_BASE}/api/classify-single`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ requirement: lead.requirement, lead }),
@@ -150,31 +169,37 @@ export default function Home() {
             }
 
             const result = await classifyRes.json();
-            const category = result.category || 'Unclassified';
 
-            // Generate stable frontend_id if not present
-            if (!lead.frontend_id) {
-              lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-${(lead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
+            // ✅ Use the enriched lead from the API (contains 'category' and 'code')
+            const classifiedLead = result.lead;
+            // Ensure we have a stable frontend_id
+            if (!classifiedLead.frontend_id) {
+              classifiedLead.frontend_id = `${classifiedLead.source}-${classifiedLead.phone}-${classifiedLead.name}-${(classifiedLead.requirement || '').slice(0, 10)}-${Date.now()}-${i}`;
             }
+
+            // Determine target column
+            const category = result.category || 'Unclassified';
+            const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
 
             // Append to the appropriate column
             setExportData(prev => {
               const updated = { ...prev };
-              const target = category === 'User 1' ? 'user1' : category === 'User 2' ? 'user2' : 'unclassified';
-              updated[target] = [...prev[target], lead];
+              updated[target] = [...prev[target], classifiedLead];
               return updated;
             });
             classified = true;
           } catch (err) {
-            // Network or other error – treat as failure
+            // Network or other error
             if (retries >= MAX_RETRIES) {
               console.warn(`Classification failed after ${MAX_RETRIES} retries for lead: ${lead.name}`, err);
-              if (!lead.frontend_id) {
-                lead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
+              // Fallback: add to unclassified with Unknown code
+              const fallbackLead = { ...lead, category: 'Unclassified', code: 'Unknown' };
+              if (!fallbackLead.frontend_id) {
+                fallbackLead.frontend_id = `${lead.source}-${lead.phone}-${lead.name}-fail-${Date.now()}-${i}`;
               }
               setExportData(prev => ({
                 ...prev,
-                unclassified: [...prev.unclassified, lead],
+                unclassified: [...prev.unclassified, fallbackLead],
               }));
               classified = true; // stop retrying
             } else {
@@ -184,7 +209,7 @@ export default function Home() {
           }
         }
 
-        // Always wait between leads (except after the last one)
+        // Delay between leads to avoid rate limiting
         if (i < allRawLeads.length - 1 && DELAY_MS > 0) {
           await sleep(DELAY_MS);
         }
@@ -192,24 +217,33 @@ export default function Home() {
         setProgress({ current: i + 1, total: allRawLeads.length });
       }
 
-      // Cache final result
+      // Cache final result (only if not stopped abruptly – still cache what we have)
       setExportData(prev => {
         sessionStorage.setItem('cachedExportData', JSON.stringify(prev));
         return prev;
       });
 
     } catch (err) {
-      setExportMsg('❌ Failed to connect to server. Is Uvicorn running?');
+      setExportMsg('❌ Failed to connect to server. Is the backend running?');
+      console.error(err);
     } finally {
       setIsFetchingAI(false);
+      stopRef.current = false;
     }
   };
 
-  // ── STEP 2: CONFIRM & UPLOAD TO DRIVE ─────────────────────────────────────
+  // 🛑 STOP CLASSIFICATION
+  const handleStopClassification = () => {
+    stopRef.current = true;
+    setIsFetchingAI(false);
+    setExportMsg(prev => prev || '⏸️ Classification stopped.');
+  };
+
+  // ── STEP 2: CONFIRM & UPLOAD TO DRIVE ────────────────────────
   const handleConfirmUpload = async () => {
     setIsUploading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/drive/upload', {
+      const res = await fetch(`${API_BASE}/api/drive/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(exportData),
@@ -226,7 +260,7 @@ export default function Home() {
     }
   };
 
-  // ── HTML5 DRAG AND DROP HANDLERS (UPDATES CACHE) ──────────────────────────
+  // ── HTML5 DRAG AND DROP HANDLERS (UPDATES CACHE) ─────────────
   const handleDragStart = (e, item, sourceList) => {
     setDraggedItem({ item, sourceList });
     e.dataTransfer.effectAllowed = "move";
@@ -255,7 +289,7 @@ export default function Home() {
     });
   };
 
-  // ── CALENDAR ALERT LOGIC ──────────────────────────────────────────────────
+  // ── CALENDAR ALERT LOGIC ─────────────────────────────────────
   const todayStr = new Date().toISOString().split('T')[0];
   let todayAlerts = []; let upcomingAlerts = [];
 
@@ -268,8 +302,7 @@ export default function Home() {
       const gDate = String(lead.gmeet_date).split('T')[0];
       const isUp = gDate > todayStr;
       (isUp ? upcomingAlerts : todayAlerts).push({ ...lead, alertType: 'GMeet', alertDate: gDate });
-    } // FIXED: Missing bracket was right here!
-
+    }
     if (lead.direct_visit_date && !lead.direct_visit_attended) {
       const vDate = String(lead.direct_visit_date).split('T')[0];
       const isUp = vDate > todayStr;
@@ -320,6 +353,9 @@ export default function Home() {
     { name: 'Manual Entry', path: '/manual', icon: <svg className="w-14 h-14 text-purple-600 group-hover:text-purple-900 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg> }
   ];
 
+  // ═══════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-start py-20 px-4 relative overflow-hidden font-sans">
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#EBA7FF]/30 rounded-full blur-[150px] pointer-events-none" />
@@ -364,6 +400,7 @@ export default function Home() {
           </button>
 
           <div className="flex flex-col items-center gap-3 w-full flex-1">
+            {/* Main Fetch button */}
             <button
               onClick={() => handleInitiateExport(false)}
               disabled={isFetchingAI || isUploading}
@@ -400,6 +437,20 @@ export default function Home() {
                 </>
               )}
             </button>
+
+            {/* 🛑 STOP button – visible only while classification is in progress */}
+            {isFetchingAI && (
+              <button
+                onClick={handleStopClassification}
+                className="w-full h-14 font-black text-lg uppercase tracking-widest rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                </svg>
+                Stop Classification
+              </button>
+            )}
+
             {exportMsg && (
               <p className={`text-sm font-bold text-center px-5 py-3 rounded-xl border w-full ${
                 exportMsg.startsWith('❌')
@@ -429,7 +480,6 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex gap-4">
-                {/* 🔄 Re-fetch Button */}
                 <button
                   onClick={() => handleInitiateExport(true)}
                   disabled={isFetchingAI || isUploading}
@@ -496,6 +546,10 @@ export default function Home() {
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                           <span className="text-blue-700 font-bold tabular-nums text-sm">{lead.phone || '—'}</span>
                           <span className="text-slate-400 font-bold tabular-nums text-xs">{lead.date}</span>
+                          {/* Show machine code if available */}
+                          {lead.code && lead.code !== 'Unknown' && (
+                            <span className="bg-purple-100 text-purple-800 font-mono text-xs px-2 py-0.5 rounded-full">{lead.code}</span>
+                          )}
                         </div>
                       </div>
                     ))}
