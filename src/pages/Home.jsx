@@ -506,8 +506,8 @@ export default function Home() {
             {/* Three Columns Grid */}
             <div className="flex flex-1 overflow-hidden p-6 gap-6 bg-slate-100/50">
               {[
-                { id: 'user1', title: 'USER 1', color: 'blue' },
-                { id: 'user2', title: 'USER 2', color: 'purple' },
+                { id: 'user1', title: 'Ritthik Kumar', color: 'blue' },
+                { id: 'user2', title: 'BDE', color: 'purple' },
                 { id: 'unclassified', title: 'UNCLASSIFIED', color: 'rose' }
               ].map(col => (
                 <div
